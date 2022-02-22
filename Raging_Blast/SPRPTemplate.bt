@@ -341,7 +341,39 @@ struct MTRL_INFO(int64 stringBase, int64 dataBase)
 struct MTRL_PROP(int64 stringBase, int64 dataBase, int dataSize)
 {
     if (dataSize/sizeof(float4) > 1) {
-        float4 data[dataSize/sizeof(float4)];
+        //0x00
+        float IluminationShadowOrientation;
+        // Only applies when the character has glow
+        float IluminationLightOrientationGlow;
+        float2 unk0x04[1];
+        // Only applies when the character has glow
+        float BrightnessPurpleLightGlow;
+        //0x10
+        // Only applies when the character has glow
+        float SaturationGlow;
+        float SaturationBase;
+        // Only applies when the character moves in specific positions
+        float BrightnessToonmapActiveSomePositions;
+        //0x20
+        float BrightnessToonmap;
+        // Only applies when the character moves in the contrary positions 
+        // from his previous version (BrightnessToonmapActiveSomePositions)
+        float BrightnessToonmapActiveOtherPositions;
+        // Only applies when the character moves in specific positions
+        float BrightnessIncandescenceActiveSomePositions;
+        float BrightnessIncandescence;
+        //0x30
+        // Only applies when the character moves in the contrary positions 
+        // from his previous version (BrightnessIncandescenceActiveSomePositions)
+        float BrightnessIncandescenceActiveOtherPositions;
+        // Related to the vaseline effect for RB2. 
+        // It's a border with color that the character have around him/her
+        // (Broly's green color border in his skin for example)
+        float4 BorderRGBA[1];
+        //0x44
+        float3 unk0x44[1];
+        //0x50
+        float4 unk0x50[1];
     } else {
         float4 data;
     }
@@ -350,7 +382,7 @@ struct MTRL_PROP(int64 stringBase, int64 dataBase, int dataSize)
 struct TX2D_INFO(int64 stringBase, int64 dataBase)
 {
 	// 0x00
-	uint32 unknown0x00      <format = hex>;
+	uint32 related2Encoding      <format = hex>;
 	uint32 dataOffset       <format = hex>;
 	uint32 unknown0x08      <format = hex>;
 	uint32 dataSize         <format = hex>;
@@ -360,9 +392,9 @@ struct TX2D_INFO(int64 stringBase, int64 dataBase)
 	uint16 unknown0x14;
 	uint16 mipmapCount;
 	uint32 unknown0x18      <format = hex>;
-	uint32 unknown0x1C      <format = hex>;
+	uint32 related2Encoding2      <format = hex>;
 	// 0x20
-	uint32 unknown0x20      <format = hex>;
+	uint8  Encoding;
 	// 0x24
 };
 
