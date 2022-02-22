@@ -1,0 +1,83 @@
+/*****************************************************************************
+ * afs.bt - Structure definitions for Dragon Ball: Ragin Blast - afs file related entities.
+ *
+ *****************************************************************************
+ * Revision History:
+ *  2009/12/03 - GWC - Original
+ */
+
+#include "common-types.bt"
+
+SetReadOnly(true);
+
+// #pragma displayname("afs structures")
+// #pragma fileextensions(".afs")
+
+// #pragma byteorder(little_endian)
+LittleEndian();
+
+// mark used bytes with a light green background
+SetBackColor(cLtGreen);
+
+// AFS File Structure
+struct AFS_FILE
+{
+//	#pragma lockAt(0x00000000)
+
+	// AFS File Header Structure - 0x04 (4) bytes
+	struct AFS_HEADER
+	{
+		uint32 fileTag; // 'AFS'
+		uint32 fileCount;
+		
+		struct
+		{
+			uint32 fileOffset <format = hex>;
+			uint32 fileSize <format = hex>;
+		} fileTable[fileCount + 1];
+	} fileHeader;
+	
+	FSkip((0x10 - (FTell() & 0x0F)) & 0x0F);
+	struct
+	{
+		local uint32 fileNum = 0;
+		for (fileNum = 0; fileNum <= fileHeader.fileCount; ++fileNum)
+		{
+			FSeek(fileHeader.fileTable[fileNum].fileOffset);
+			union
+			{
+				uint8  dataBytes[fileHeader.fileTable[fileNum].fileSize];
+			} fileData;
+		}
+	} fileData;
+
+    local uint32 table_count = fileHeader.fileCount + 1;
+    local uint32 table_offset = fileHeader.fileTable[table_count - 1].fileOffset;
+
+    if (table_offset == 0)
+        break;
+
+    FSeek(table_offset);
+    struct
+    {
+		local uint32 fileNum = 0;
+		for (fileNum = 0; fileNum < fileHeader.fileCount; ++fileNum)
+		{
+			struct
+			{
+				char  file_name[0x20];
+                // 0x20
+                uint16 file_date_year;
+                uint16 file_date_month;
+                uint16 file_date_day;
+                uint16 file_date_hour;
+                uint16 file_date_minute;
+                uint16 file_date_second;
+                uint32 file_size;
+                // 0x30
+			} file_table;
+		}
+    } file_table;
+};
+
+struct AFS_FILE fileInfo;

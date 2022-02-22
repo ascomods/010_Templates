@@ -1,0 +1,295 @@
+/*****************************************************************************
+ * ANMTemplate.bt 
+ * Dragon Ball Budokai Tenkaichi 3 (PS2) - ANM file structure definitions
+ *
+ *****************************************************************************
+ * Requirements: 
+ *  common-types.bt template made by revel8n
+ * 
+ * Revision History:
+ *  2021/11/26 - Ascomods (DC)
+ *
+ * Credits:
+ *  HiroTex and ViveTheModder for their explanations
+ *  revel8n for his templates
+ */
+
+#include "../common-types.bt"
+
+LittleEndian();
+
+SetBackColor(cLtGreen);
+
+local uint boneCount = 55;
+
+local enum {
+NULL,PRG_RESERVE,RESERVE,WAIST,TAIL1,TAIL2,TAIL3,TAIL4,HIP_R,THIGH_R,SHANK_R,
+HEEL_R,HIP_L,THIGH_L,SHANK_L,HEEL_L,BELLY,CHEST,CLAVICLE_R,SHOULDER_R,ELBOW_R,
+WRIST_R,THUMB_R,FOREFINGER1_R,FOREFINGER2_R,MIDDLE_FINGER1_R,MIDDLE_FINGER2_R,
+MEDICINAL_FINGER1_R,MEDICINAL_FINGER2_R,LITTLE_FINGER1_R,LITTLE_FINGER2_R,
+EFFECT_R,CLAVICLE_L,SHOULDER_L,ELBOW_L,WRIST_L,THUMB_L,FOREFINGER1_L,
+FOREFINGER2_L,MIDDLE_FINGER1_L,MIDDLE_FINGER2_L,MEDICINAL_FINGER1_L,MEDICINAL_FINGER2_L,
+LITTLE_FINGER1_L,LITTLE_FINGER2_L,EFFECT_L,NECK,HEAD,FACE,CHIN,HAIR,ALPHA,THROW,
+CAMERA,UTILITY
+} boneNames;
+
+local enum {
+PLAYER_2_GRUNT = 1, DARK_BACKGROUND = 2, HAIR_SHAKE = 4,
+CAMERA_LOCKED_P1 = 8, PRIMARY_VOICE_LINE = 80
+} commandByte6Values;
+
+local enum {
+DASHING_SOUND = 10, INVISIBLE = 2, VISIBLE = 4,
+SOUND_1_2_SWINGS = 20, SOUND_8_9_OTHER_SWINGS = 40
+} commandByte8Values;
+
+local enum {
+SOUND_33_DIFF_SWING_TURN = 8, SOUND_78_SWORD_SLASH = 10, SOUND_38_DRAMATIC_LANDING = 20,
+SOUND_12_52_REGULAR_METALLIC_FOOTSTEP = 40, SECONDARY_VOICE_LINE = 80
+} commandByte9Values;
+
+local enum {
+SOUND_19_ELECTRIC_SND_PSYCHOKINESIS = 1, SOUND_25_JUMP_ASCEND = 2, SOUND_45_DRAMATIC_SHOCK = 4,
+SOUND_32_STEP_IN_BACKSTEP = 8, SOUND_50_HIGH_JUMP = 10, SOUND_6_ATTACK_BLOCKED = 20,
+BATTLE_11_13 = 80
+} commandByte11Values;
+
+local enum {
+trans_rot, rotation
+} dataTypes;
+
+local uint32 savePos = 0;
+local int64 savedFilePointers[100];
+
+savedFilePointers[0] = 0;
+
+void PushFP(void) { if (savePos < 100) { savedFilePointers[savePos] = FTell(); ++savePos; } }
+void PopFP(void) { if (savePos > 0) { --savePos; FSeek(savedFilePointers[savePos]); } }
+
+local int currentColor;
+
+void AlternateColors(int colorA, int colorB) {
+    if (currentColor == colorA) {
+        currentColor = colorB;
+    } else {
+        currentColor = colorA;
+    }
+    SetBackColor(currentColor);
+}
+
+struct ptrString(uint32 stringBase)
+{
+	uint32 offset <format = hex>;
+	
+	PushFP();
+	{
+		SetBackColor(cLtYellow);
+		FSeek(offset + stringBase);
+		string data;
+	}
+	PopFP();
+};
+
+string ptrString_read (ptrString& s)
+{
+	return s.data;
+}
+
+struct ANM_FILE;
+
+struct ANM_HEADER
+{
+    // 0x00
+	ubyte unknown0x00       <format = hex>;
+    SetBackColor(0x0000ff);
+    ubyte commandsCount;
+
+    if (commandsCount > 0) {
+        struct {
+            PushFP();
+	        {
+                local int i;
+                for (i = 0; i < commandsCount; i++) {
+		            FSeek(0x90 + i * 16);
+                    struct {
+                        ubyte unknown0x00;
+                        ubyte unknown0x01;
+                        ubyte unknown0x02;
+                        ubyte unknown0x03;
+                        ubyte unknown0x04;
+                        ubyte unknown0x05 <read = readCommandByte6>;
+                        ubyte unknown0x06;
+                        ubyte unknown0x07 <read = readCommandByte8>;
+                        ubyte unknown0x08 <read = readCommandByte9>;
+                        ubyte unknown0x09;
+                        ubyte unknown0x0A <read = readCommandByte11>;
+                        ubyte unknown0x0B;
+                        uint frame;
+                    } commandDataEntry;
+                }
+	        }
+	        PopFP();
+        } commandsData;
+    }
+
+    SetBackColor(0x0066ff);
+    uint16 frameCount;
+    SetBackColor(cLtBlue);
+    uint16 unknown0x04      <format = hex>;
+};
+
+string readCommandByte6(const ubyte &b){
+	string s;
+    commandByte6Values = b;
+	SPrintf(s, "%s", EnumToString(commandByte6Values));
+	return s;
+}
+
+string readCommandByte8(const ubyte &b){
+	string s;
+    commandByte8Values = b;
+	SPrintf(s, "%s", EnumToString(commandByte8Values));
+	return s;
+}
+
+string readCommandByte9(const ubyte &b){
+	string s;
+    commandByte9Values = b;
+	SPrintf(s, "%s", EnumToString(commandByte9Values));
+	return s;
+}
+
+string readCommandByte11(const ubyte &b){
+	string s;
+    commandByte11Values = b;
+	SPrintf(s, "%s", EnumToString(commandByte11Values));
+	return s;
+}
+
+typedef union {
+    int64 rot;
+	local double x, y, z;
+} rotation <read = rotationRead, write = rotationWrite>;
+
+string rotationRead( const rotation &r )
+{
+    string s;
+	r.x = (((double)((r.rot & 0x0fffffffffffffff) >> 40) / 0x7ffff) * 90) - 90,
+    r.y = (((double)((r.rot & 0x000000ffffffffff) >> 20) / 0x7ffff) * 90) - 90;
+    r.z = (((double)(r.rot & 0x00000000000fffff) / 0x7ffff) * 90) - 90;
+
+    SPrintf( s, "(%e, %e, %e)", r.x, r.y, r.z );
+	return s;
+}
+
+int64 getRotation(const double &v) {
+    return (int64)(((v + 90) * 0x7ffff) / 90);
+}
+
+void rotationWrite( rotation &r, string s )
+{
+    SScanf( s, "(%lf, %lf, %lf)", r.x, r.y, r.z );
+    local int64 rotX = getRotation(r.x) << 40;
+    local int64 rotY = getRotation(r.y) << 20;
+    local int64 rotZ = getRotation(r.z);
+
+    r.rot = 0x3000000000000000 | (rotX | rotY | rotZ);
+}
+
+typedef uint16 off4 <read = readOffset>;
+
+typedef struct {
+    SetBackColor(0xff00aa);
+    float x, y, z;
+    SetBackColor(0xff00ff);
+    int frame;
+    SetBackColor(0xaa0066);
+    rotation rot;
+} trans_rot <read = readTranslation>;
+
+string readTranslation(const trans_rot &tr){
+    string s;
+	SPrintf(s, "frame = %d,  (%e, %e, %e)", tr.frame, tr.x, tr.y, tr.z);
+	return s;
+}
+
+typedef struct(int idx, ANM_HEADER &anm_h) {
+   local int index = idx;
+   off4 offset <format = hex>;
+   
+   if (offset > 0)
+   {
+       PushFP();
+       {
+           FSeek(offset * 4);
+           SetBackColor(cLtBlue);
+           
+           uint16 dataType <read = readType>;
+           
+           SetBackColor(cLtGreen);
+           uint16 frameCount;
+
+           local int i;
+           struct
+           {
+              for(i = 0; i < frameCount; i++) {
+                  SetBackColor(0x00a7ff);
+                  if (dataType == 1) {
+                    rotation rot;
+                  } else {
+                    trans_rot tr;
+                  }
+              }
+           } data;
+           if (dataType == 1) {
+               struct
+               {
+                  for(i = 0; i < frameCount; i++) {
+                      SetBackColor(0x0054ff);
+                      uint16 frame;
+                  }
+               } frames;
+           }
+       }
+       PopFP();
+   }
+} BONE_ENTRY <read = readBone>;
+
+string readOffset(const uint16 offset){
+    string s;
+	SPrintf(s, "%Xh", offset * 4);
+	return s;
+}
+
+string readType(const uint16 type){
+    string s;
+    dataTypes = type;
+	SPrintf(s, "%s", EnumToString(dataTypes));
+	return s;
+}
+
+string readBone(const BONE_ENTRY &b){
+	string s;
+    boneNames = b.index;
+	SPrintf(s, "%s", EnumToString(boneNames));
+	return s;
+}
+
+// ANM File Structure
+struct ANM_FILE
+{
+	SetBackColor(cLtBlue);
+	struct ANM_HEADER header;
+    
+    currentColor = cLtBlue;
+    SetBackColor(cLtYellow);
+	struct
+	{
+        local int i;
+        for(i = 0; i < boneCount; i++) {
+            BONE_ENTRY boneEntries(i, header) <optimize = false>;
+        }
+	} boneEntries;
+};
+
+struct ANM_FILE fileInfo;

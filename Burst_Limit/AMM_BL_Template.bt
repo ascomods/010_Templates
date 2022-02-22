@@ -1,0 +1,267 @@
+/*****************************************************************************
+ * AMMTemplate.bt 
+ * Dragon Ball Budokai 3 (PS2) - AMM file structure definitions
+ *
+ *****************************************************************************
+ * Requirements: 
+ *  common-types.bt template made by revel8n
+ * 
+ * Revision History:
+ *  2021/12/22 - Ascomods (DC)
+ *
+ * Credits:
+ *  revel8n for his templates
+ */
+
+#include "../common-types.bt"
+
+BigEndian();
+
+SetBackColor(cLtGreen);
+
+local uint32 savePos = 0;
+local int64 savedFilePointers[100];
+
+savedFilePointers[0] = 0;
+
+void PushFP(void) { if (savePos < 100) { savedFilePointers[savePos] = FTell(); ++savePos; } }
+void PopFP(void) { if (savePos > 0) { --savePos; FSeek(savedFilePointers[savePos]); } }
+
+local int currentColor;
+
+void AlternateColors(int colorA, int colorB) {
+    if (currentColor == colorA) {
+        currentColor = colorB;
+    } else {
+        currentColor = colorA;
+    }
+    SetBackColor(currentColor);
+}
+
+struct ptrString(uint32 stringBase)
+{
+	uint32 offset <format = hex>;
+	
+	PushFP();
+	{
+		SetBackColor(cLtYellow);
+		FSeek(offset + stringBase);
+		string data;
+	}
+	PopFP();
+};
+
+string ptrString_read (ptrString& s)
+{
+	return s.data;
+}
+
+struct AMM_FILE;
+
+/*typedef struct {
+    LittleEndian();
+    uint frameNumber;
+    BigEndian();
+    float x;
+    float y;
+    float z;
+} frame <read = frameRead, write = frameWrite>;
+
+string frameRead( const frame &f )
+{
+    string s;
+
+    SPrintf( s, "%d : (%e, %e, %e)", f.frameNumber, f.x, f.y, f.z );
+	return s;
+}
+
+void frameWrite( frame &f, string s )
+{
+    SScanf( s, "%d : (%lf, %lf, %lf)", f.frameNumber, f.x, f.y, f.z );
+}
+*/
+typedef struct {
+    uint16 x, y, z;
+} rotation <read = rotationRead, write = rotationWrite>;
+
+string rotationRead( const rotation &r )
+{
+    string s;
+
+	local double rotX = (double)(r.x) / 0xffff * 360;
+    local double rotY = (double)(r.y) / 0xffff * 360;
+    local double rotZ = (double)(r.z) / 0xffff * 360;
+
+    SPrintf( s, "(%f, %f, %f)", rotX, rotY, rotZ );
+	return s;
+}
+
+int64 getRotation(const double &v) {
+    return (int64)(((v) / 360) * 0xffff);
+}
+
+void rotationWrite( rotation &r, string s )
+{
+    SScanf( s, "(%lf, %lf, %lf)", r.x, r.y, r.z );
+}
+
+typedef struct(ulong &nextFrameIDOffset, ulong &nextFrameOffset, ushort frameIDSize, ushort tableIndex) {
+    local ushort frameIDSize = frameIDSize;
+    local ushort tableIndex = tableIndex;
+
+    FSeek(nextFrameIDOffset);
+    SetBackColor(0x8b1eea);
+    if (frameIDSize == 0) {
+        ubyte frameID;
+    }
+    else if (frameIDSize == 1) {
+        uint16 frameID;
+    }
+    nextFrameIDOffset = FTell();
+    
+    FSeek(nextFrameOffset);
+    SetBackColor(cLtBlue);
+    if (tableIndex == 0) {
+        rotation rot;
+    }
+    else if (tableIndex == 1) {
+        struct {
+            float x;
+            float y;
+            float z;
+        } pos;
+    }
+    nextFrameOffset = FTell();
+} frame;
+
+string frameRead( const frame &f )
+{
+    string s;
+    if (f.tableIndex == 0) {
+        SPrintf( s, "%d : %s", f.frameID, rotationRead(f.rot) );
+    } else {
+        SPrintf( s, "%d : (%f, %f, %f)", f.frameID, f.pos.x, f.pos.y, f.pos.z );
+    }
+	return s;
+}
+
+typedef struct(int nameOffset) {
+    PushFP();
+    FSeek(nameOffset);
+    SetBackColor(0x00a7ff);
+    string name;
+    PopFP();
+
+    ulong controllerCount;
+    ulong controllerOffset  <format = hex>;
+
+    if (controllerCount > 0) {
+        local uint i;
+        struct {
+            local ulong nextControllerOffset = controllerOffset;
+            for (i = 0; i < controllerCount; i++) {  
+                PushFP();
+                FSeek(nextControllerOffset);
+                struct {
+                    SetBackColor(cLtGreen);
+                    ushort tableIndex;
+                    ushort frameIDSize;
+                    ushort frameCount;
+                    ushort unknown0x04; // always 1
+                    
+                    ulong frameIDOffset  <format = hex>;
+                    ulong frameOffset  <format = hex>;
+        
+                    PushFP();
+                    FSeek(frameIDOffset);
+                    
+                    local uint j;
+                    if (frameCount > 0) {
+                        struct {
+                            local ulong nextFrameIDOffset = frameIDOffset;
+                            local ulong nextFrameOffset = frameOffset;
+                            for (j = 0; j < frameCount; j++) {
+                                PushFP();
+                                frame f(nextFrameIDOffset, nextFrameOffset, frameIDSize, tableIndex) <read=frameRead>;
+                                PopFP();
+                            }
+                        } frames;
+                    }
+        
+                    PopFP();
+                } controller;
+                nextControllerOffset = FTell();
+                PopFP();
+            }
+        } controllers;
+    }
+} BONE_ENTRY <read = readBone>;
+
+string readBone(const BONE_ENTRY &b){
+	string s;
+	SPrintf(s, "%s", b.name);
+	return s;
+}
+
+typedef struct(uint boneCount) {
+    BigEndian();
+    ushort frames;
+    ushort unknown0x02;
+    ulong startOffset       <format = hex>;
+
+    if (startOffset > 0) {
+        PushFP();
+        FSeek(startOffset);
+
+        local int j;
+        struct {
+            for (j = 0; j < boneCount; j++) { 
+                BONE_ENTRY b(boneNamesOffset + (32 * j));
+            }
+        } boneData;
+
+        PopFP();
+        SetBackColor(0xffff00);
+    }
+} animEntry;
+
+struct AMM_HEADER
+{
+    char dataType[4];
+    uint headerLength   <format = hex>;
+    uint unknown0x08;
+    uint unknown0x0C;   // always 2
+    uint animEntryCount;
+    uint tableOffset;
+    uint boneCount;
+    uint boneNamesOffset    <format = hex>;    
+
+    if (animEntryCount > 0) {
+       SetBackColor(0xffff00);
+       struct {
+          animEntry a(boneCount)[animEntryCount] <optimize=false>;
+       } animEntries;
+    }
+};
+
+string readOffset(const uint16 offset){
+    string s;
+	SPrintf(s, "%Xh", offset * 4);
+	return s;
+}
+
+string readType(const uint16 type){
+    string s;
+    dataTypes = type;
+	SPrintf(s, "%s", EnumToString(dataTypes));
+	return s;
+}
+
+// AMM File Structure
+struct AMM_FILE
+{
+	SetBackColor(cLtBlue);
+	struct AMM_HEADER header;
+};
+
+struct AMM_FILE fileInfo;

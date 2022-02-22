@@ -1,0 +1,86 @@
+/*****************************************************************************
+ * B3_AMB.bt 
+ * Dragon Ball: Budokai 3 - AMB file
+ *
+ *****************************************************************************
+ * Revision History:
+ *  2021/05/18 - Ascomods (DC)
+ *
+ * Credits:
+ *  revel8n for his templates
+ */
+
+typedef ubyte uint8;
+
+BigEndian();
+
+local uint32 savePos = 0;
+local int64 savedFilePointers[100];
+
+savedFilePointers[0] = 0;
+
+void PushFP(void) { if (savePos < 100) { savedFilePointers[savePos] = FTell(); ++savePos; } }
+void PopFP(void) { if (savePos > 0) { --savePos; FSeek(savedFilePointers[savePos]); } }
+
+local int currentColor = cLtGreen;
+
+void AlternateColors() {
+    if (currentColor == cYellow) {
+        currentColor = cLtGreen;
+    } else {
+        currentColor = cYellow;
+    }
+    SetBackColor(currentColor);
+}
+
+struct AMB_FILE;
+
+struct AMB_HEADER
+{
+	uint32 dataTag          <format = hex>;
+	uint32 unknown0x04;
+    uint32 unknown0x08;
+    uint32 unknown0x0C;
+    uint32 entryCount;
+    uint32 unknown0x14;
+    uint32 unknown0x18;
+    uint32 unknown0x1C;
+};
+
+struct AMB_ENTRY(int64 baseOffset)
+{
+    SetBackColor(cPurple);
+	uint32 dataOffset    <format = hex>;
+    SetBackColor(cLtRed);
+	uint32 dataSize      <format = hex>;
+    SetBackColor(cLtGreen);
+	uint32 dataIndex;
+	uint32 unknown0x0C;
+	
+	PushFP();
+	if (dataSize > 0)
+	{
+		FSeek(baseOffset + dataOffset);
+        
+		union (int64 baseOffset)
+		{
+            AlternateColors();
+			uint8  dataBytes[dataSize];
+		} data(baseOffset);
+	}
+	PopFP();
+};
+
+struct AMB_FILE
+{
+	SetBackColor(cLtBlue);
+	struct AMB_HEADER header;
+	
+	SetBackColor(cLtGreen);
+	struct
+	{
+		struct AMB_ENTRY dataEntries(startof(parentof(this)))[header.entryCount] <optimize = false>;
+	} dataEntries;
+};
+
+struct AMB_FILE fileInfo;

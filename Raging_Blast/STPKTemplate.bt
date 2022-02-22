@@ -1,0 +1,676 @@
+/*****************************************************************************
+ * stpk.bt - Structure definitions for Dragon Ball: Ragin Blast - stpz file related entities.
+ *
+ *****************************************************************************
+ * Revision History:
+ *  2011/06/14 - revel8n - Original
+ *  2022/01/22 - Ascomods - update (SHAP, MTRL, BONES)
+ */
+
+#include "../common-types.bt"
+
+//SetReadOnly(true);
+
+// #pragma displayname("stpk structures")
+// #pragma fileextensions(".stpk")
+
+// #pragma byteorder(big_endian)
+BigEndian();
+
+// mark used bytes with a light green background
+SetBackColor(cLtGreen);
+
+local uint32 savePos = 0;
+local int64 savedFilePointers[100];
+
+local uint boneCount = 0;
+
+savedFilePointers[0] = 0;
+
+void PushFP(void) { if (savePos < 100) { savedFilePointers[savePos] = FTell(); ++savePos; } }
+void PopFP(void) { if (savePos > 0) { --savePos; FSeek(savedFilePointers[savePos]); } }
+
+struct ptrString(uint32 stringBase)
+{
+	uint32 offset <format = hex>;
+	
+	PushFP();
+	{
+		SetBackColor(cLtYellow);
+		FSeek(offset + stringBase);
+		string data;
+	}
+	PopFP();
+};
+string ptrString_read (ptrString& s)
+{
+	return s.data;
+}
+
+struct STPK_FILE;
+
+struct STPK_HEADER
+{
+	uint32 dataTag          <format = hex>; // "STPK"
+	uint32 unknown0x04;
+	uint32 entryCount;
+	uint32 unknown0x0C;
+};
+
+struct SPRP_HEADER
+{
+	// 0x00
+	uint32 dataTag          <format = hex>; // "SPRP"
+	uint16 unknown0x04;
+	uint16 unknown0x06;
+	uint32 entryCount;
+	uint32 unknown0x0C;
+	// 0x10
+	uint32 nameOffset       <format = hex>;
+	uint32 entryInfoSize    <format = hex>;
+	uint32 stringTableSize  <format = hex>;
+	uint32 dataInfoSize     <format = hex>;
+	// 0x20
+	uint32 dataBlockSize    <format = hex>;
+	uint32 ioramNameOffset  <format = hex>;
+	uint32 ioramDataSize    <format = hex>;
+	uint32 vramNameOffset   <format = hex>;
+	// 0x30
+	uint32 vramDataSize     <format = hex>;
+	uint32 unknown0x34[3]   <format = hex>;
+	// 0x40
+};
+
+struct TXAN_INFO(int64 stringBase, int64 dataBase)
+{
+};
+
+struct DRVN_ENTRY(int64 dataBase)
+{
+	uint32    unknown0x00;
+	ptrString unknown0x04(dataBase) <read = ptrString_read>;
+	uint32    unknown0x08[2]        <format = hex>;
+	uint32    unknown0x10           <format = hex>;
+	uint32    unknown0x14           <format = hex>;
+	uint32    unknown0x18[3]        <format = hex>;
+	
+	PushFP();
+	{
+		FSeek(dataBase + unknown0x14);
+		struct (int64 dataBase)
+		{
+			ptrString dataStrings(dataBase)[unknown0x10] <optimize = false, read = ptrString_read>;
+		} dataStrings(dataBase);
+	}
+	PopFP();
+};
+
+struct DRVN_INFO(int64 stringBase, int64 dataBase)
+{
+	// 0x00
+	uint32 unknown0x00;
+	uint32 entryCount;
+	uint32 stringCount;
+	
+	DRVN_ENTRY dataEntries(startof(this))[entryCount] <optimize = false>;
+};
+
+struct BONE_DATA(const int64 dataBase)
+{
+	// 0x00
+	uint32    index;
+	ptrString name(dataBase)  <read = ptrString_read>;
+	uint32    childCount;
+	uint32    childOffsets    <format = hex>;
+	// 0x10
+	uint32    relativeOffset  <format = hex>;
+	uint32    absoluteOffset  <format = hex>;
+	uint32    inverseOffset   <format = hex>;
+	
+	//uint32 unknown0x1C[0x90 >> 2] <format = hex>;
+	// 0xAC
+    uint32   boneIndex;
+    uint32   unknown0x20[3];
+    float4x4 transform1;
+    float4x4 transform2;
+    
+    local int64 baseOffset = dataBase;
+    if (childCount > 0) {
+	    PushFP();
+	    {
+		    FSeek(baseOffset + childOffsets);
+    
+            local uint i;
+            struct {
+                for(i = 0; i < childCount; i++) {
+                    uint childOffset <format = hex, hidden=true>;
+                    PushFP();
+	                {
+                        FSeek(baseOffset + childOffset + 4);
+                        ptrString name(baseOffset)  <read = ptrString_read>;
+                    }
+                    PopFP();
+                }
+            } children;
+	    }
+	    PopFP();
+    }
+};
+string BONE_DATA_read (BONE_DATA& b)
+{
+	return b.name.data;
+}
+
+struct BONE_INFO(int64 stringBase, int64 dataBase)
+{
+	// 0x00
+	uint32 unknown0x00 <format = hex>;
+	uint32 jointCount;
+    boneCount = jointCount;
+	uint32 unknown0x08 <format = hex>;
+	uint32 dataOffset  <format = hex>;
+	// 0x10
+	uint32 relativeTransformsOffset <format = hex>;
+	uint32 absoluteTransformsOffset <format = hex>;
+	uint32 inverseTransformsOffset  <format = hex>;
+	uint32 rawDataOffset <format = hex>;
+	// 0x20
+	uint32 unknown0x20 <format = hex>;
+	// 0x24
+	
+	FSeek(startof(this) + dataOffset);
+	struct (int64 dataBase)
+	{
+		BONE_DATA boneInfo(dataBase)[jointCount] <optimize = false, read = BONE_DATA_read>;
+	} boneInfo(startof(this));
+	
+	FSeek(startof(this) + relativeTransformsOffset);
+	float4x4 relativeTransforms[jointCount];
+	
+	FSeek(startof(this) + absoluteTransformsOffset);
+	float4x4 absoluteTransforms[jointCount];
+	
+	FSeek(startof(this) + inverseTransformsOffset);
+	float4x4 inverseTransforms[jointCount];
+};
+
+struct SCNE_MATERIAL_INFO(int64 stringBase)
+{
+	ptrString name(stringBase) <read = ptrString_read>;
+	ptrString type(stringBase) <read = ptrString_read>;
+	uint32    unknown0x08;
+};
+string MATERIAL_INFO_read (SCNE_MATERIAL_INFO& m)
+{
+	return m.name.data;
+}
+
+struct EYE_DATA(int64 stringBase, int64 dataBase)
+{
+	SetBackColor(cLtBlue);
+	ptrString unknown0x00(stringBase) <read = ptrString_read>;
+	SetBackColor(cLtGreen);
+	float3    unknown0x04[9];
+};
+string EYE_DATA_read (EYE_DATA& m)
+{
+	return m.unknown0x00.data;
+}
+
+struct SCNE_EYE_INFO(int64 stringBase, int64 dataBase)
+{
+	EYE_DATA unknown0x00(stringBase, dataBase)[3] <optimize = false, read = EYE_DATA_read>;
+};
+
+struct SCNE_MODEL(int64 stringBase, int64 dataBase)
+{
+	uint32    unknown0x00;
+	ptrString type(stringBase) <read = ptrString_read>;
+	ptrString name(stringBase) <read = ptrString_read>;
+	ptrString layerName(stringBase) <read = ptrString_read>;
+	ptrString parentName(stringBase) <read = ptrString_read>;
+};
+string SCNE_MODEL_read (SCNE_MODEL& m)
+{
+	return m.type.data;
+}
+
+struct SCNE_MATERIAL(int64 stringBase, int64 dataBase)
+{
+	// 0x00
+	ptrString name(stringBase) <read = ptrString_read>;
+	uint32    unknown0x04;
+	uint32    materialInfosCount;
+	
+	struct (int64 stringBase)
+	{
+		SCNE_MATERIAL_INFO materialInfos(stringBase)[materialInfosCount] <optimize = false, read = MATERIAL_INFO_read>;
+	} materialInfo(stringBase);
+};
+string SCNE_MATERIAL_read (SCNE_MATERIAL& m)
+{
+	return m.name.data;
+}
+
+struct SCNE_INFO(int64 stringBase, int64 dataBase)
+{
+};
+
+enum <uint16> VertexUsage
+{
+	VTXUSAGE_POSITION = 0,
+	VTXUSAGE_NORMAL   = 2,
+	VTXUSAGE_TEXCOORD = 5,
+	VTXUSAGE_BONE_WEIGHTS  = 6,
+	VTXUSAGE_BONE_INDICES  = 7,
+};
+
+enum <uint16> VertexFormat
+{
+	VTXFMT_ULONG1 =  2,
+	VTXFMT_FLOAT1 =  8,
+	VTXFMT_FLOAT2 =  9,
+	VTXFMT_FLOAT3 = 10,
+	VTXFMT_FLOAT4 = 11,
+};
+
+struct VERTEX_DECL(int64 stringBase, int64 dataBase)
+{
+	// 0x00
+	uint32       unknown0x00;
+	ptrString    resourceName(stringBase) <read = ptrString_read>;
+	VertexUsage  usage;
+	uint16       index;
+	VertexFormat format;
+	uint16       stride    <format = hex>;
+	// 0x10
+	uint32       offset    <format = hex>;
+	// 0x14
+};
+
+struct VBUF_INFO(int64 stringBase, int64 dataBase)
+{
+	SetBackColor(cLtBlue);
+	// 0x00
+	uint32 unknown0x00;
+	uint32 unknown0x04;
+	uint32 dataOffset   <format = hex>;
+	uint32 dataSize     <format = hex>;
+	// 0x10
+	uint32 vertexCount;
+	uint16 unknown0x14;
+	uint16 unknown0x16;
+	uint16 declCount0;
+	uint16 declCount1;
+	uint32 declOffset   <format = hex>;
+	// 0x20
+	
+	PushFP();
+	{
+		SetBackColor(cLtGreen);
+		FSeek(dataBase + declOffset);
+		struct (int64 stringBase, int64 dataBase)
+		{
+			VERTEX_DECL vertexDecl(stringBase, dataBase)[declCount0] <optimize = false>;
+		} vertexDecl(stringBase, dataBase);
+	}
+	PopFP();
+};
+
+struct SHAP_INFO(int64 stringBase, int64 dataBase, int dataSize)
+{
+    if (dataSize/sizeof(float4) > 1) {
+        float4 data[dataSize/sizeof(float4)];
+    } else {
+        float4 data;
+    }
+};
+
+struct MTRL_LAYER(int64 stringBase)
+{
+	ptrString layerName(stringBase) <read = ptrString_read>;
+	ptrString sourceName(stringBase) <read = ptrString_read>;
+};
+string MTRL_LAYER_read (MTRL_LAYER& m)
+{
+	return m.layerName.data;
+}
+
+struct MTRL_INFO(int64 stringBase, int64 dataBase)
+{
+	// 0x00
+	uint32 unknown0x00[0x70 >> 2];
+	// 0x70
+	struct (int64 stringBase)
+	{
+		MTRL_LAYER layers(stringBase)[10] <optimize = false, read = MTRL_LAYER_read>;
+	} layers(stringBase);
+	// 0xC0
+};
+
+struct MTRL_PROP(int64 stringBase, int64 dataBase, int dataSize)
+{
+    if (dataSize/sizeof(float4) > 1) {
+        float4 data[dataSize/sizeof(float4)];
+    } else {
+        float4 data;
+    }
+};
+
+struct TX2D_INFO(int64 stringBase, int64 dataBase)
+{
+	// 0x00
+	uint32 unknown0x00      <format = hex>;
+	uint32 dataOffset       <format = hex>;
+	uint32 unknown0x08      <format = hex>;
+	uint32 dataSize         <format = hex>;
+	// 0x10
+	uint16 width;
+	uint16 height;
+	uint16 unknown0x14;
+	uint16 mipmapCount;
+	uint32 unknown0x18      <format = hex>;
+	uint32 unknown0x1C      <format = hex>;
+	// 0x20
+	uint32 unknown0x20      <format = hex>;
+	// 0x24
+};
+
+void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, int dataSize)
+{
+//	PushFP();
+	
+		switch (dataType)
+		{
+		case 0x54583244: // 'TX2D'
+			struct TX2D_INFO dataInfo(stringBase, dataBase);
+			break;
+		case 0x4D54524C: // 'MTRL'
+			if (0 == Strnicmp("DbzCharMtrl", name, 11))
+			{
+                struct MTRL_PROP dataInfo(stringBase, dataBase, dataSize);
+			}
+			else
+			{
+				struct MTRL_INFO dataInfo(stringBase, dataBase);
+			}
+			break;
+		case 0x53484150: // 'SHAP'
+			struct SHAP_INFO dataInfo(stringBase, dataBase, dataSize);
+			break;
+		case 0x56425546: // 'VBUF'
+			struct VBUF_INFO dataInfo(stringBase, dataBase);
+			break;
+		case 0x53434E45: // 'SCNE'
+			if (0 == Strnicmp("[MATERIAL]", name, 10))
+			{
+				struct SCNE_MATERIAL dataInfo(stringBase, dataBase) <read = SCNE_MATERIAL_read>;
+			}
+			else if (0 == Strnicmp("|model", name, 6))
+			{
+				struct SCNE_MODEL dataInfo(stringBase, dataBase) <read = SCNE_MODEL_read>;
+			}
+			else if (0 == Strnicmp("DbzEyeInfo", name, 10))
+			{
+				struct SCNE_EYE_INFO dataInfo(stringBase, dataBase);
+			}
+			else
+			{
+//				struct SCNE_INFO dataInfo(stringBase, dataBase);
+			}
+			break;
+		case 0x424F4E45: // 'BONE'
+			switch (name)
+			{
+			case "DbzBoneInfo":
+                typedef struct {
+                    uint idx;
+                    float3x3 t;
+                } DbzBoneInfo;
+                DbzBoneInfo d[boneCount];
+				break;
+			default:
+				struct BONE_INFO dataInfo(stringBase, dataBase);
+				break;
+			}
+			break;
+		case 0x4452564E: // 'DRVN'
+			struct DRVN_INFO dataInfo(stringBase, dataBase);
+			break;
+		case 0x5458414E: // 'TXAN'
+//			struct TXAN_INFO dataInfo(stringBase, dataBase);
+			break;
+		default:
+			Printf("Unknow data type: 0x%08X\n", dataType);
+			break;
+		}
+	
+//	PopFP();
+}
+
+struct SPRP_DATA_INFO(uint32 dataType, int64 stringBase, int64 dataBase)
+{
+	SetBackColor(cLtBlue);
+	// 0x00
+	uint32 nameOffset       <format = hex>;
+	uint32 dataOffset       <format = hex>;
+	uint32 dataSize         <format = hex>;
+	uint32 childCount;
+	// 0x10
+	uint32 childOffset      <format = hex>;
+	// 0x14
+	
+	PushFP();
+	{
+		FSeek(stringBase + nameOffset);
+		SetBackColor(cLtYellow);
+		string name;
+
+		if ( dataSize > 0)
+		{
+			FSeek(dataBase + dataOffset);
+			union (uint32 dataType, int64 stringBase, int64 dataBase)
+			{
+				SetBackColor(cLtRed);
+				uint8 dataBytes[dataSize] <format = hex>;
+				DumpData(dataType, name, stringBase, dataBase, dataSize);
+			} data(dataType, stringBase, dataBase);
+		}
+		
+		if (childCount > 0)
+		{
+			FSeek(dataBase + childOffset);
+			struct (uint32 dataType, int64 stringBase, int64 dataBase)
+			{
+				struct SPRP_DATA_INFO childInfo(dataType, stringBase, dataBase)[childCount] <optimize = false, read = DATA_INFO_read>;
+			} childInfo(dataType, stringBase, dataBase);
+		}
+	}
+	PopFP();
+};
+string DATA_INFO_read (SPRP_DATA_INFO& d)
+{
+	return d.name;
+}
+
+struct SPRP_DATA_ENTRY(int64 stringBase, int64 dataBase)
+{
+	// 0x00
+	uint32 dataType         <format = hex>;
+	uint32 index;
+	
+	SPRP_DATA_INFO dataInfo(dataType, stringBase, dataBase);
+	
+	uint32 unknown0x1C      <format = hex>;
+	// 0x20
+};
+string DATA_ENTRY_read (SPRP_DATA_ENTRY& d)
+{
+	return d.dataInfo.name;
+}
+
+void DumpDataEntry(uint32 dataType, uint32 dataCount, int64 stringBase, int64 dataInfoBase, int64 dataBase)
+{
+	PushFP();
+	FSeek(dataInfoBase);
+	
+	struct (int64 stringBase, int64 dataBase)
+	{
+		switch (dataType)
+		{
+		case 0x54583244: // 'TX2D'
+		case 0x4D54524C: // 'MTRL'
+		case 0x53484150: // 'SHAP'
+		case 0x56425546: // 'VBUF'
+		case 0x53434E45: // 'SCNE'
+		case 0x424F4E45: // 'BONE'
+		case 0x4452564E: // 'DRVN'
+		case 0x5458414E: // 'TXAN'
+			struct SPRP_DATA_ENTRY dataInfo(stringBase, dataBase)[dataCount] <optimize = false, read = DATA_ENTRY_read>;
+			break;
+		default:
+			Printf("Unknow data type: 0x%08X\n", dataType);
+			break;
+		}
+	} dataInfo(stringBase, dataBase);
+	
+	PopFP();
+}
+
+struct SPRP_TYPE_ENTRY(int64 stringBase, int64 dataInfoBase, int64 dataBase)
+{
+	// 0x00
+	uint32 dataType         <format = hex>;
+	uint32 unknown0x04;
+	uint32 dataCount;
+	// 0x0C
+	
+	DumpDataEntry(dataType, dataCount, stringBase, dataInfoBase, dataBase);
+};
+
+int64 DumpTypeEntry(int64 stringBase, int64 dataInfoBase, int64 dataBase)
+{
+	struct SPRP_TYPE_ENTRY typeInfo(stringBase, dataInfoBase, dataBase);
+	
+	return (typeInfo.dataCount * 0x20); //sizeof(SPRP_DATA_ENTRY));
+}
+
+struct SPRP_FILE
+{
+	SetBackColor(cLtBlue);
+	SPRP_HEADER header;
+	
+	local int64 typeInfoBase = FTell();
+	local int64 stringBase = typeInfoBase + header.entryInfoSize;
+	local int64 dataInfoBase = stringBase + header.stringTableSize;
+	local int64 dataBase = dataInfoBase + header.dataInfoSize;
+	local int64 offset = 0;
+	
+	FSeek(stringBase + header.nameOffset);
+	SetBackColor(cLtYellow);
+	string baseName;
+
+	FSeek(stringBase + header.ioramNameOffset);
+	SetBackColor(cLtYellow);
+	string ioramName;
+
+	FSeek(stringBase + header.vramNameOffset);
+	SetBackColor(cLtYellow);
+	string vramName;
+
+	FSeek(typeInfoBase);
+	union
+	{
+		SetBackColor(cLtGreen);
+		uint8 dataBytes[header.entryInfoSize];
+		struct
+		{
+			local uint32 typeNum = 0;
+			for (typeNum = 0; typeNum < header.entryCount; ++typeNum)
+			{
+				offset += DumpTypeEntry(stringBase, dataInfoBase + offset, dataBase);
+			}
+		} typeInfo;
+	} typeInfo;
+/*	
+	FSeek(stringBase);
+	union
+	{
+		SetBackColor(cLtYellow);
+		uint8 dataBytes[header.stringTableSize];
+	} stringTable;
+	
+	FSeek(dataInfoBase);
+	union
+	{
+		SetBackColor(cLtGreen);
+		uint8 dataBytes[header.dataInfoSize];
+	} dataInfo;
+	
+	FSeek(dataBase);
+	union
+	{
+		SetBackColor(cLtRed);
+		uint8 dataBytes[header.dataBlockSize];
+	} dataBlock;
+*/
+};
+
+void DumpEntry(int64 offset)
+{
+	FSeek(offset);
+	
+	local uint32 dataTag = ReadUInt(FTell());
+	
+	switch (dataTag)
+	{
+	case 0x5354504B:
+		STPK_FILE data;
+		break;
+	case 0x53505250:
+		SPRP_FILE data;
+		break;
+	default:
+		uint32 data <format = hex>;
+		break;
+	};
+}
+
+struct STPK_ENTRY(int64 baseOffset)
+{
+	// 0x00
+	uint32 dataOffset    <format = hex>; // "STPZ"
+	uint32 dataSize      <format = hex>;
+	uint32 unknown0x08;
+	uint32 unknown0x0C;
+	// 0x10
+	char   name[32];
+	// 0x30
+	
+	PushFP();
+	if (dataSize > 0)
+	{
+		FSeek(baseOffset + dataOffset);
+		union (int64 baseOffset)
+		{
+			uint8  dataBytes[dataSize];
+			DumpEntry(baseOffset + dataOffset);
+		} data(baseOffset);
+	}
+	PopFP();
+};
+
+// STPK File Structure
+struct STPK_FILE
+{
+	SetBackColor(cLtBlue);
+	struct STPK_HEADER header;
+	
+	SetBackColor(cLtGreen);
+	struct
+	{
+		struct STPK_ENTRY dataEntries(startof(parentof(this)))[header.entryCount] <optimize = false>;
+	} dataEntries;
+};
+
+struct STPK_FILE fileInfo;

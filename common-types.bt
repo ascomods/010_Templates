@@ -1,0 +1,559 @@
+/*****************************************************************************
+ * common-types.bt - Common type definition used in binary formats.
+ *
+ *****************************************************************************
+ * Revision History:
+ *  2009/03/16 - revel8n - Original
+ *  2009/03/18 - revel8n - Added type parsing functions
+ *  2011/05/29 - revel8n - Updated parsing functions
+ */
+ 
+#ifndef COMMON_TYPES_BT
+#define COMMON_TYPES_BT
+
+//get signed bits
+int SignedBits(int val, int bits)
+{
+	int signVal = (1 << (bits - 1));
+	int isSign = !!(val & signVal);
+	if (isSign)
+	{
+		val ^= signVal;
+		val = -(signVal - val);
+	}
+
+	return val;
+}
+
+typedef byte int8;
+typedef ubyte uint8;
+
+typedef int16 int16n <read=int16nRead>;
+
+typedef uint16 uint16n <read=uint16nRead>;
+
+//typedef uint16 hfloat <read=hfloatRead>;
+
+typedef uint16 hfloat_mgs <read=hfloatRead_mgs>;
+
+typedef uint16 hfloat_pes <read=hfloatRead_pes>;
+
+typedef union
+{
+	local int isLittle = IsLittleEndian();
+	
+	LittleEndian();
+	struct
+	{
+		int32 x : 10;
+		int32 y : 10;
+		int32 z : 10;
+		int32 w :  2;
+	} le;
+	
+	BigEndian();
+	struct
+	{
+		int32 w :  2;
+		int32 z : 10;
+		int32 y : 10;
+		int32 x : 10;
+	} be;
+	
+	if (isLittle) LittleEndian();
+} dec4n <read=dec4nRead>;
+
+typedef union
+{
+	local int isLittle = IsLittleEndian();
+	
+	LittleEndian();
+	struct
+	{
+		int32 x : 11;
+		int32 y : 11;
+		int32 z : 10;
+	} le;
+	
+	BigEndian();
+	struct
+	{
+		int32 z : 10;
+		int32 y : 11;
+		int32 x : 11;
+	} be;
+	
+	if (isLittle) LittleEndian();
+} hend3n <read=hend3nRead>;
+
+typedef union
+{
+	hfloat v[4];
+	struct
+	{
+		hfloat x, y, z, w;
+	} vec4;
+} hfloat4 <read=hfloat4Read>;
+
+typedef union
+{
+	int8 v[2];
+	struct
+	{
+		int8 x, y;
+	} vec4;
+} byte2 <read=byte2Read, write=byte2Write>;
+
+typedef union
+{
+	int8 v[3];
+	struct
+	{
+		int8 x, y, z;
+	} vec4;
+} byte3 <read=byte3Read, write=byte3Write>;
+
+typedef union
+{
+	int8 v[4];
+	struct
+	{
+		int8 x, y, z, w;
+	} vec4;
+} byte4 <read=byte4Read, write=byte4Write>;
+
+typedef union
+{
+	uint8 v[2];
+	struct
+	{
+		uint8 x, y;
+	} vec4;
+} ubyte2 <read=ubyte2Read, write=ubyte2Write>;
+
+typedef union
+{
+	uint8 v[3];
+	struct
+	{
+		uint8 x, y, z;
+	} vec4;
+} ubyte3 <read=ubyte3Read, write=ubyte3Write>;
+
+typedef union
+{
+	uint8 v[4];
+	struct
+	{
+		uint8 x, y, z, w;
+	} vec4;
+} ubyte4 <read=ubyte4Read, write=ubyte4Write>;
+
+typedef union
+{
+	int16 v[2];
+	struct
+	{
+		int16 x, y;
+	} vec2;
+} short2 <read=short2Read, write=short2Write>;
+
+typedef union
+{
+	int16 v[3];
+	struct
+	{
+		int16 x, y, z;
+	} vec3;
+} short3 <read=short3Read, write=short3Write>;
+
+typedef union
+{
+	int16 v[4];
+	struct
+	{
+		int16 x, y, z, w;
+	} vec4;
+} short4 <read=short4Read, write=short4Write>;
+
+typedef union
+{
+	float v[2];
+	struct
+	{
+		float x, y;
+	} vec2;
+} float2 <read=float2Read, write=float2Write>;
+
+typedef union
+{
+	float v[3];
+	struct
+	{
+		float x, y, z;
+	} vec3;
+} float3 <read=float3Read, write=float3Write>;
+
+typedef union
+{
+	float v[4];
+	struct
+	{
+		float x, y, z, w;
+	} vec4;
+} float4 <read=float4Read, write=float4Write>;
+
+typedef struct
+{
+	union
+	{
+		float v[4];
+		float2 rows[2];
+	} vec2x2;
+} float2x2;
+
+typedef struct
+{
+	union
+	{
+		float v[6];
+		float3 rows[2];
+	} vec2x3;
+} float2x3;
+
+typedef struct
+{
+	union
+	{
+		float v[9];
+		float3 rows[3];
+	} vec3x3;
+} float3x3;
+
+typedef struct
+{
+	union
+	{
+		float v[12];
+		float3 rows[4];
+	} vec4x3;
+} float4x3;
+
+typedef struct
+{
+	union
+	{
+		float v[8];
+		float4 rows[2];
+	} vec2x4;
+} float2x4;
+
+typedef struct
+{
+	union
+	{
+		float v[12];
+		float4 rows[3];
+	} vec3x4;
+} float3x4;
+
+typedef struct
+{
+	union
+	{
+		float v[16];
+		float4 rows[4];
+	} vec4x4;
+} float4x4;
+
+
+// byte2 parsing functions
+string byte2Read( const byte2 &v )
+{
+	local int32 t[2] = {v.v[0], v.v[1]};
+	string s;   
+	SPrintf( s, "(%6d, %6d)", t[0], t[1] );
+	return s;
+}
+
+void byte2Write( byte2 &v, string s )
+{
+	SScanf( s, "(%d, %d)", v.v[0], v.v[1] );
+}
+
+// byte3 parsing functions
+string byte3Read( const byte3 &v )
+{
+	local int32 t[3] = {v.v[0], v.v[1], v.v[2]};
+	string s;   
+	SPrintf( s, "(%6d, %6d, %6d)", t[0], t[1], t[2] );
+	return s;
+}
+
+void byte3Write( byte4 &v, string s )
+{
+	SScanf( s, "(%d, %d, %d)", v.v[0], v.v[1], v.v[2] );
+}
+
+// byte4 parsing functions
+string byte4Read( const byte4 &v )
+{
+	local int32 t[4] = {v.v[0], v.v[1], v.v[2], v.v[3]};
+	string s;   
+	SPrintf( s, "(%6d, %6d, %6d, %6d)", t[0], t[1], t[2], t[3] );
+	return s;
+}
+
+void byte4Write( byte4 &v, string s )
+{
+	SScanf( s, "(%d, %d, %d, %d)", v.v[0], v.v[1], v.v[2], v.v[3] );
+}
+
+// ubyte2 parsing functions
+string ubyte2Read( const ubyte2 &v )
+{
+	string s;   
+	SPrintf( s, "(%4u, %4u)", v.v[0], v.v[1] );
+	return s;
+}
+
+void ubyte2Write( ubyte2 &v, string s )
+{
+	SScanf( s, "(%u, %u)", v.v[0], v.v[1] );
+}
+
+// ubyte3 parsing functions
+string ubyte3Read( const ubyte3 &v )
+{
+	string s;   
+	SPrintf( s, "(%4u, %4u, %4u)", v.v[0], v.v[1], v.v[2] );
+	return s;
+}
+
+void ubyte3Write( ubyte3 &v, string s )
+{
+	SScanf( s, "(%u, %u, %u)", v.v[0], v.v[1], v.v[2] );
+}
+
+// ubyte4 parsing functions
+string ubyte4Read( const ubyte4 &v )
+{
+	string s;   
+	SPrintf( s, "(%4u, %4u, %4u, %4u)", v.v[0], v.v[1], v.v[2], v.v[3] );
+	return s;
+}
+
+void ubyte4Write( ubyte4 &v, string s )
+{
+	SScanf( s, "(%u, %u, %u, %u)", v.v[0], v.v[1], v.v[2], v.v[3] );
+}
+
+// short2 parsing functions
+string short2Read( const short2 &v )
+{
+	local int32 t[2] = {v.v[0], v.v[1]};
+	string s;   
+	SPrintf( s, "(%6d, %6d)", t[0], t[1] );
+	return s;
+}
+
+void short2Write( short2 &v, string s )
+{
+	SScanf( s, "(%d, %d)", v.v[0], v.v[1] );
+}
+
+// short3 parsing functions
+string short3Read( const short3 &v )
+{
+	local int32 t[3] = {v.v[0], v.v[1], v.v[2]};
+	string s;   
+	SPrintf( s, "(%6d, %6d, %6d)", t[0], t[1], t[2] );
+	return s;
+}
+
+void short3Write( short3 &v, string s )
+{
+	SScanf( s, "(%d, %d, %d)", v.v[0], v.v[1], v.v[2] );
+}
+
+// short4 parsing functions
+string short4Read( const short4 &v )
+{
+	local int32 t[4] = {v.v[0], v.v[1], v.v[2], v.v[3]};
+	string s;   
+	SPrintf( s, "(%6d, %6d, %6d, %6d)", t[0], t[1], t[2], t[3] );
+	return s;
+}
+
+void short4Write( short4 &v, string s )
+{
+	SScanf( s, "(%d, %d, %d, %d)", v.v[0], v.v[1], v.v[2], v.v[3] );
+}
+
+// float2 parsing functions
+string float2Read( const float2 &v )
+{
+	string s;   
+	SPrintf( s, "(%14f, %14f)", v.v[0], v.v[1] );
+	return s;
+}
+
+void float2Write( float2 &v, string s )
+{
+	SScanf( s, "(%f, %f)", v.v[0], v.v[1] );
+}
+
+// float3 parsing functions
+string float3Read( const float3 &v )
+{
+	string s;   
+	SPrintf( s, "(%14f, %14f, %14f)", v.v[0], v.v[1], v.v[2] );
+	return s;
+}
+
+void float3Write( float3 &v, string s )
+{
+	SScanf( s, "(%f, %f, %f)", v.v[0], v.v[1], v.v[2] );
+}
+
+// float4 parsing functions
+string float4Read( const float4 &v )
+{
+	string s;   
+	SPrintf( s, "(%14e, %14e, %14e, %14e)", v.v[0], v.v[1], v.v[2], v.v[3] );
+	return s;
+}
+
+void float4Write( float4 &v, string s )
+{
+	SScanf( s, "(%e, %e, %e, %e)", v.v[0], v.v[1], v.v[2], v.v[3] );
+}
+
+// float4 parsing functions
+string hfloatRead( const hfloat &v )
+{
+	uint32 dataValue;
+	float  fValue;
+	
+	dataValue = 0;
+	
+	if (v & 0x7C00)
+	{
+		dataValue = ((v & 0x7C00) + 0x1C000) << 13;
+	}
+	
+	dataValue |= ((v & 0x8000) << 16) | ((v & 0x03FF) << 13);
+	
+	string s;
+	SPrintf( s, "%x", dataValue );
+	SScanf( s, "%x", fValue );
+	SPrintf( s, "%f", fValue );
+	return s;
+}
+
+// float4 parsing functions
+string hfloatRead_mgs( const hfloat_mgs &v )
+{
+	uint32 dataValue;
+	float  fValue;
+	
+	dataValue = 0;
+	
+	if (v & 0x7C00)
+	{
+		dataValue = ((v & 0x7C00) + 0x1DC00) << 13;
+	}
+	
+	dataValue |= ((v & 0x8000) << 16) | ((v & 0x03FF) << 13);
+	
+	string s;
+	SPrintf( s, "%x", dataValue );
+	SScanf( s, "%x", fValue );
+	SPrintf( s, "%f", fValue );
+	return s;
+}
+
+// hfloat parsing functions
+string hfloatRead_pes( const hfloat_mgs &v )
+{
+	uint32 dataValue;
+	float  fValue;
+	
+	dataValue = 0;
+	
+	if (v & 0x7C00)
+	{
+		dataValue = ((v & 0x7C00) + 0x1A400) << 13;
+	}
+	
+	dataValue |= ((v & 0x8000) << 16) | ((v & 0x03FF) << 13);
+	
+	string s;
+	SPrintf( s, "%x", dataValue );
+	SScanf( s, "%x", fValue );
+	SPrintf( s, "%f", fValue );
+	return s;
+}
+
+// hfloat4 parsing functions
+string hfloat4Read( const hfloat4 &v )
+{
+	string s;
+	SPrintf( s, "(%f, %f, %f, %f)", v.v[0], v.v[1], v.v[2], v.v[3] );
+	return s;
+}
+
+// dec4n parsing functions
+string dec4nRead( const dec4n &v )
+{
+	float x = (IsBigEndian()) ? SignedBits(v.be.x, 10) : SignedBits(v.le.x, 10);
+	float y = (IsBigEndian()) ? SignedBits(v.be.y, 10) : SignedBits(v.le.y, 10);
+	float z = (IsBigEndian()) ? SignedBits(v.be.z, 10) : SignedBits(v.le.z, 10);
+	float w = (IsBigEndian()) ? SignedBits(v.be.w,  2) : SignedBits(v.le.w, 2);
+	
+	x = x / 511.0;
+	y = y / 511.0;
+	z = z / 511.0;
+	
+	string s;
+	SPrintf( s, "(%f, %f, %f, %f)", x, y, z, w );
+	return s;
+}
+
+// hend3n parsing functions
+string hend3nRead( const hend3n &v )
+{
+	float x = (IsBigEndian()) ? SignedBits(v.be.x, 11) : SignedBits(v.le.x, 11);
+	float y = (IsBigEndian()) ? SignedBits(v.be.y, 11) : SignedBits(v.le.y, 11);
+	float z = (IsBigEndian()) ? SignedBits(v.be.z, 10) : SignedBits(v.le.z, 10);
+	
+	x = x / 1023.0;
+	y = y / 1023.0;
+	z = z / 511.0;
+	
+	string s;
+	SPrintf( s, "(%f, %f, %f)", x, y, z );
+	return s;
+}
+
+// int16n parsing functions
+string int16nRead( const int16n &v )
+{
+	float x = v / 32767.0;
+	
+	string s;
+	SPrintf( s, "(%f)", x );
+	return s;
+}
+
+// uint16n parsing functions
+string uint16nRead( const uint16n &v )
+{
+	float x = v / 65535.0;
+	
+	string s;
+	SPrintf( s, "(%f)", x );
+	return s;
+}
+
+#endif // COMMON_TYPES_BT

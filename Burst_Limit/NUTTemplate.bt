@@ -1,0 +1,107 @@
+/*****************************************************************************
+ * NUTTemplate.bt 
+ * Dragon Ball Burst Limit (PS3) - NUT file structure definitions
+ *
+ *****************************************************************************
+ * Requirements: 
+ *  common-types.bt template made by revel8n
+ * 
+ * Revision History:
+ *  2021/12/30 - Ascomods (DC)
+ *
+ * Credits:
+ *  Nexus / Trev for the Burst Limit Modkit
+ *  Izen for his help
+ *  revel8n for his templates
+ */
+
+#include "../common-types.bt"
+
+BigEndian();
+
+SetBackColor(cLtGreen);
+
+local uint32 savePos = 0;
+local int64 savedFilePointers[100];
+
+savedFilePointers[0] = 0;
+
+void PushFP(void) { if (savePos < 100) { savedFilePointers[savePos] = FTell(); ++savePos; } }
+void PopFP(void) { if (savePos > 0) { --savePos; FSeek(savedFilePointers[savePos]); } }
+
+local int currentColor;
+
+void AlternateColors(int colorA, int colorB) {
+    if (currentColor == colorA) {
+        currentColor = colorB;
+    } else {
+        currentColor = colorA;
+    }
+    SetBackColor(currentColor);
+}
+
+struct ptrString(uint32 stringBase)
+{
+	uint32 offset <format = hex>;
+	
+	PushFP();
+	{
+		SetBackColor(cLtYellow);
+		FSeek(offset + stringBase);
+		string data;
+	}
+	PopFP();
+};
+
+string ptrString_read (ptrString& s)
+{
+	return s.data;
+}
+
+struct NUT_HEADER
+{
+    char dataType[4];
+    uint16 unknown0x04   <format = hex>;
+    uint16 textureCount;
+    FSkip(8);
+    
+    if (textureCount > 0) {
+        local uint i;
+        
+        struct {
+            for(i = 0; i < textureCount; i++) {
+                struct {
+                    SetBackColor(0xff7aff);
+                    uint unknown0x00    <format=hex>;
+                    uint unknown0x04    <format=hex>;
+                    uint bpp;
+                    uint16 headerSize;
+                    uint16 unknown0x0E  <format=hex>;
+    
+                    uint unknown0x10    <format=hex>;
+                    uint16 height;
+                    uint16 width;
+                    ubyte unknown0x18[headerSize - 32];
+                    uint textureID;
+                    uint unknown0x5C;
+                    
+                    SetBackColor(0x8b1eea);
+                    if (bpp == (int)(height * width * 4)) {
+                        ubyte data[(int)(bpp/4)];
+                    } else {
+                        ubyte data[bpp];
+                    }
+                } texture;
+            }
+        } textures;
+    }
+};
+
+// NUT File Structure
+struct NUT_FILE
+{
+	SetBackColor(cLtGreen);
+	struct NUT_HEADER header;
+};
+
+struct NUT_FILE fileInfo;

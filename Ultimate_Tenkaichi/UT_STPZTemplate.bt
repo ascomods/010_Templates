@@ -1,0 +1,70 @@
+/*****************************************************************************
+ * stpz.bt - Structure definitions for Dragon Ball: Ragin Blast - stpz file related entities.
+ *
+ *****************************************************************************
+ * Revision History:
+ *  2009/12/03 - GWC - Original
+ */
+
+#include "../common-types.bt"
+
+SetReadOnly(true);
+
+// #pragma displayname("stpz structures")
+// #pragma fileextensions(".stpz")
+
+// #pragma byteorder(little_endian)
+LittleEndian();
+
+// mark used bytes with a light green background
+SetBackColor(cLtGreen);
+
+struct STPZ_HEADER
+{
+	uint32 fileTag; // "STPZ"
+	uint32 unknown0x04;
+	uint32 unknown0x08;
+	uint32 unknown0x0C;
+};
+
+struct _SCD0_HEADER
+{
+	uint32 fileTag; // "SCD0"
+	uint32 uncompressedSize;
+	uint32 compressedSize;
+	uint32 unknown0x0C; // maximum uncompressed block size? - have not seen '0LCS' sections bigger than this size, but not sure if this is related
+};
+
+struct _SCL0_HEADER
+{
+	SetBackColor(cLtBlue);
+	// 0x00
+	uint32 fileTag; // "SCL0"
+	uint32 uncompressedSize;
+	uint32 compressedSize;
+	uint32 unknown0x0C;
+	SetBackColor(cLtYellow);
+	// 0x10
+	uint8  dataBytes[compressedSize - 0x10];
+};
+
+// STPZ File Structure
+struct STPZ_FILE
+{
+	SetBackColor(cLtBlue);
+	BigEndian();
+	struct STPZ_HEADER stpzHeader;
+	
+	SetBackColor(cLtGreen);
+	struct _SCD0_HEADER _Scd0Header;
+	
+	local uint32 totalSize = sizeof(_Scd0Header);
+	while (totalSize < _Scd0Header.compressedSize)
+	{
+		struct _SCL0_HEADER _Scl0Header;
+		
+		totalSize += _Scl0Header.compressedSize;
+	}
+};
+
+struct STPZ_FILE fileInfo;
