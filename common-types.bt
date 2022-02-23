@@ -556,4 +556,21 @@ string uint16nRead( const uint16n &v )
 	return s;
 }
 
+struct ptrString(uint32 stringBase)
+{
+	uint32 offset <format = hex>;
+	
+	PushFP();
+	{
+		SetBackColor(cLtYellow);
+		FSeek(offset + stringBase);
+		string data;
+	}
+	PopFP();
+};
+string ptrString_read (ptrString& s)
+{
+	return s.data;
+}
+
 #endif // COMMON_TYPES_BT

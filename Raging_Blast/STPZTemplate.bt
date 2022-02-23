@@ -8,12 +8,7 @@
 
 #include "../common-types.bt"
 
-SetReadOnly(true);
-
-// #pragma displayname("stpz structures")
-// #pragma fileextensions(".stpz")
-
-// #pragma byteorder(little_endian)
+//SetReadOnly(true);
 LittleEndian();
 
 // mark used bytes with a light green background

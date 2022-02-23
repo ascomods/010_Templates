@@ -7,42 +7,15 @@
  */
 
 #include "../common-types.bt"
+#include "../common-functions.bt"
 
 //SetReadOnly(true);
-
-// #pragma displayname("sprp structures")
-// #pragma fileextensions(".sprp")
-
-// #pragma byteorder(big_endian)
 BigEndian();
 
 // mark used bytes with a light green background
 SetBackColor(cLtGreen);
 
-local uint32 savePos = 0;
-local int64 savedFilePointers[100];
-
-savedFilePointers[0] = 0;
-
-void PushFP(void) { if (savePos < 100) { savedFilePointers[savePos] = FTell(); ++savePos; } }
-void PopFP(void) { if (savePos > 0) { --savePos; FSeek(savedFilePointers[savePos]); } }
-
-struct ptrString(uint32 stringBase)
-{
-	uint32 offset <format = hex>;
-	
-	PushFP();
-	{
-		SetBackColor(cLtYellow);
-		FSeek(offset + stringBase);
-		string data;
-	}
-	PopFP();
-};
-string ptrString_read (ptrString& s)
-{
-	return s.data;
-}
+local uint boneCount = 0;
 
 struct SPRP_HEADER
 {
@@ -153,13 +126,14 @@ struct BONE_INFO(int64 stringBase, int64 dataBase)
 	// 0x00
 	uint32 unknown0x00 <format = hex>;
 	uint32 jointCount;
+    boneCount = jointCount;
 	uint32 unknown0x08 <format = hex>;
 	uint32 dataOffset  <format = hex>;
 	// 0x10
-	uint32 relativeOffset <format = hex>;
-	uint32 absoluteOffset <format = hex>;
-	uint32 inverseOffset  <format = hex>;
-	uint32 unknown0x1C <format = hex>;
+	uint32 relativeTransformsOffset <format = hex>;
+	uint32 absoluteTransformsOffset <format = hex>;
+	uint32 inverseTransformsOffset  <format = hex>;
+	uint32 hierarchyDataOffset <format = hex>;
 	// 0x20
 	uint32 unknown0x20 <format = hex>;
 	// 0x24
@@ -170,13 +144,13 @@ struct BONE_INFO(int64 stringBase, int64 dataBase)
 		BONE_DATA boneInfo(dataBase)[jointCount] <optimize = false, read = BONE_DATA_read>;
 	} boneInfo(startof(this));
 	
-	FSeek(startof(this) + relativeOffset);
+	FSeek(startof(this) + relativeTransformsOffset);
 	float4x4 relativeTransforms[jointCount];
 	
-	FSeek(startof(this) + absoluteOffset);
+	FSeek(startof(this) + absoluteTransformsOffset);
 	float4x4 absoluteTransforms[jointCount];
 	
-	FSeek(startof(this) + inverseOffset);
+	FSeek(startof(this) + inverseTransformsOffset);
 	float4x4 inverseTransforms[jointCount];
 };
 
@@ -213,8 +187,7 @@ struct SCNE_MODEL(int64 stringBase, int64 dataBase)
 	uint32    unknown0x00;
 	ptrString type(stringBase) <read = ptrString_read>;
 	ptrString name(stringBase) <read = ptrString_read>;
-	ptrString linkedObjName(stringBase) <read = ptrString_read>;
-    Printf("%s\n", ptrString_read(linkedObjName));
+	ptrString layerName(stringBase) <read = ptrString_read>;
 	ptrString parentName(stringBase) <read = ptrString_read>;
 };
 string SCNE_MODEL_read (SCNE_MODEL& m)
@@ -270,13 +243,45 @@ struct VERTEX_DECL(int64 stringBase, int64 dataBase)
 	VertexUsage  usage;
 	uint16       index;
 	VertexFormat format;
-    //Printf("%s\n", EnumToString(usage));
+
 	uint16       stride    <format = hex>;
 	// 0x10
 	uint32       offset    <format = hex>;
 	// 0x14
 };
 
+#ifdef UT_MODE
+struct VBUF_INFO(int64 stringBase, int64 dataBase)
+{
+	SetBackColor(cLtBlue);
+	// 0x00
+	uint32 unknown0x00;
+	uint32 unknown0x04;
+	uint32 dataOffset   <format = hex>;
+	uint32 dataSize     <format = hex>;
+	// 0x10
+    uint32 indexCount;
+	uint32 vertexCount;
+	uint16 unknown0x18;
+	uint16 unknown0x1A;
+	uint16 declCount0;
+	uint16 declCount1;
+    // 0x20
+	uint32 declOffset   <format = hex>;
+    uint32 indexOffset  <format = hex>;
+	
+	PushFP();
+	{
+		SetBackColor(cLtGreen);
+		FSeek(dataBase + declOffset);
+		struct (int64 stringBase, int64 dataBase)
+		{
+			VERTEX_DECL vertexDecl(stringBase, dataBase)[declCount0] <optimize = false>;
+		} vertexDecl(stringBase, dataBase);
+	}
+	PopFP();
+};
+#else
 struct VBUF_INFO(int64 stringBase, int64 dataBase)
 {
 	SetBackColor(cLtBlue);
@@ -305,6 +310,7 @@ struct VBUF_INFO(int64 stringBase, int64 dataBase)
 	}
 	PopFP();
 };
+#endif
 
 struct SHAP_INFO(int64 stringBase, int64 dataBase, int dataSize)
 {
@@ -445,6 +451,11 @@ void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, i
 			switch (name)
 			{
 			case "DbzBoneInfo":
+                typedef struct {
+                    uint idx;
+                    float3x3 t;
+                } DbzBoneInfo;
+                DbzBoneInfo d[boneCount];
 				break;
 			default:
 				struct BONE_INFO dataInfo(stringBase, dataBase);
@@ -609,28 +620,8 @@ struct SPRP_FILE
 			}
 		} typeInfo;
 	} typeInfo;
-/*	
-	FSeek(stringBase);
-	union
-	{
-		SetBackColor(cLtYellow);
-		uint8 dataBytes[header.stringTableSize];
-	} stringTable;
-	
-	FSeek(dataInfoBase);
-	union
-	{
-		SetBackColor(cLtGreen);
-		uint8 dataBytes[header.dataInfoSize];
-	} dataInfo;
-	
-	FSeek(dataBase);
-	union
-	{
-		SetBackColor(cLtRed);
-		uint8 dataBytes[header.dataBlockSize];
-	} dataBlock;
-*/
 };
 
+#ifndef NESTED_INCLUSION
 struct SPRP_FILE fileInfo;
+#endif

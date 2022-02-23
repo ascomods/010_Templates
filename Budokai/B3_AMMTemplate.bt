@@ -1,5 +1,5 @@
 /*****************************************************************************
- * AMMTemplate.bt 
+ * B3_AMMTemplate.bt 
  * Dragon Ball Budokai 3 (PS2) - AMM file structure definitions
  *
  *****************************************************************************
@@ -14,18 +14,11 @@
  */
 
 #include "../common-types.bt"
+#include "../common-functions.bt"
 
 LittleEndian();
 
 SetBackColor(cLtGreen);
-
-local uint32 savePos = 0;
-local int64 savedFilePointers[100];
-
-savedFilePointers[0] = 0;
-
-void PushFP(void) { if (savePos < 100) { savedFilePointers[savePos] = FTell(); ++savePos; } }
-void PopFP(void) { if (savePos > 0) { --savePos; FSeek(savedFilePointers[savePos]); } }
 
 local int currentColor;
 
@@ -36,24 +29,6 @@ void AlternateColors(int colorA, int colorB) {
         currentColor = colorA;
     }
     SetBackColor(currentColor);
-}
-
-struct ptrString(uint32 stringBase)
-{
-	uint32 offset <format = hex>;
-	
-	PushFP();
-	{
-		SetBackColor(cLtYellow);
-		FSeek(offset + stringBase);
-		string data;
-	}
-	PopFP();
-};
-
-string ptrString_read (ptrString& s)
-{
-	return s.data;
 }
 
 struct AMM_FILE;
