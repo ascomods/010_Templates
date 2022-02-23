@@ -15,11 +15,12 @@
 
 #ifdef UT_MODE
 #include "../Raging_Blast/SPRPTemplate.bt"
+#include "../Raging_Blast/SPATemplate.bt"
 #else
 #include "SPRPTemplate.bt"
+#include "SPATemplate.bt"
 #endif
 
-//SetReadOnly(true);
 BigEndian();
 
 // mark used bytes with a light green background
@@ -35,12 +36,12 @@ struct STPK_HEADER
 	uint32 unknown0x0C;
 };
 
-void DumpEntry(int64 offset)
+void DumpEntry(char name[], int64 offset)
 {
 	FSeek(offset);
 	
 	local uint32 dataTag = ReadUInt(FTell());
-	
+
 	switch (dataTag)
 	{
 	case 0x5354504B:
@@ -50,7 +51,13 @@ void DumpEntry(int64 offset)
 		SPRP_FILE data;
 		break;
 	default:
-		uint32 data <format = hex>;
+        if (Strstr(name, ".spa") != -1) {
+            SPA_FILE data;
+        }
+        else
+        {
+		    uint32 data <format = hex>;
+        }
 		break;
 	};
 }
@@ -73,7 +80,7 @@ struct STPK_ENTRY(int64 baseOffset)
 		union (int64 baseOffset)
 		{
 			uint8  dataBytes[dataSize];
-			DumpEntry(baseOffset + dataOffset);
+			DumpEntry(name, baseOffset + dataOffset);
 		} data(baseOffset);
 	}
 	PopFP();

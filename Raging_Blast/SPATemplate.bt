@@ -21,7 +21,6 @@
 #include "../common-functions.bt"
 
 BigEndian();
-SetBackColor(cLtGreen);
 
 local int currentColor;
 
@@ -40,13 +39,19 @@ struct SPA_HEADER
 {
     // 0x00
 	uint32 unknown0x00;
-	ptrString name(0)  <read = ptrString_read>;
+	ptrString name(startof(this))  <read = ptrString_read>;
 	uint32 unknown0x08;
 	float frameCount;
     // 0x10
     uint32 boneCount;
     uint32 maybeStartOffset      <format = hex>;
-    uint32 unknown0x18[6]        <format = hex>;
+    uint32 sceneNodesCount;
+    uint32 sceneNodesOffset      <format = hex>;
+    // 0x20
+    uint32 unknown0x20;
+    uint32 boneDataStartOffset   <format = hex>;
+    uint32 unknown0x28;
+    uint32 unknown0x2C;
 };
 
 typedef union {
@@ -90,7 +95,7 @@ string float4SciRead( const float4 &v )
 typedef struct(int64 baseOffset)
 {
 	// 0x00
-    ptrString name(0)    <read = ptrString_read>;
+    ptrString name(baseOffset)    <read = ptrString_read>;
     uint32 unknown0x04;
     uint32 translationBlockCount;
 	uint32 rotationBlockCount;
@@ -98,7 +103,7 @@ typedef struct(int64 baseOffset)
     uint32 unknown0x10;     // always null
     uint32 translationFrameOffset    <format = hex>;
     uint32 rotationFrameOffset       <format = hex>;
-    uint32 unknown0x1C;     // always null
+    uint32 unknown0x1C               <format = hex>;
     // 0x20
     uint32 translationFloatOffset    <format = hex>;
     uint32 rotationFloatOffset       <format = hex>;
@@ -108,14 +113,14 @@ typedef struct(int64 baseOffset)
 	{   
 	    PushFP();
 	    {
-            FSeek(translationFrameOffset);
+            FSeek(baseOffset + translationFrameOffset);
     
             SetBackColor(cPurple);
             float translationFrameData[translationBlockCount] <format = hex>;
 
-            FSeek(translationFloatOffset);
+            FSeek(baseOffset + translationFloatOffset);
 
-            SetBackColor(cLtGreen);
+            SetBackColor(0xe21bbe);
             float4 translationFloatData[translationBlockCount] <read=float4SciRead>;
 	    }
 	    PopFP();
@@ -125,14 +130,14 @@ typedef struct(int64 baseOffset)
 	{   
 	    PushFP();
 	    {
-            FSeek(rotationFrameOffset);
+            FSeek(baseOffset + rotationFrameOffset);
 
-			SetBackColor(0xff56c6);
+			SetBackColor(0xb7dc00);
             float rotFrameData[rotationBlockCount] <format = hex>;
 
-            FSeek(rotationFloatOffset);
+            FSeek(baseOffset + rotationFloatOffset);
 
-			SetBackColor(0xff9f2b);
+			SetBackColor(0x92a52d);
             rotation rotFloatData[rotationBlockCount];
 	    }
 	    PopFP();
@@ -145,13 +150,63 @@ string readBone(const BONE_ENTRY &b){
 	return s;
 }
 
+typedef struct(int64 baseOffset)
+{
+	// 0x00
+    ptrString name(baseOffset)    <read = ptrString_read>;
+    uint32 frameCount;
+    uint32 frameOffset            <format = hex>;
+    uint32 unknownOffset          <format = hex>;
+
+    if (frameCount > 0) {
+	    PushFP();
+	    {
+            FSeek(baseOffset + frameOffset);
+
+			SetBackColor(cPurple);
+            float frameData[frameCount] <format = hex>;
+	    }
+	    PopFP();
+    }
+	PushFP();
+	{
+        FSeek(baseOffset + unknownOffset);
+        SetBackColor(0x0000ff);
+        float unknownData;
+	}
+	PopFP();
+} SCNE_ENTRY <read = readSceneNode>;
+
+string readSceneNode(const SCNE_ENTRY &sc){
+	string s;
+	SPrintf(s, "%s", ptrString_read(sc.name));
+	return s;
+}
+
 // SPA File Structure
 struct SPA_FILE
 {
-	SetBackColor(cLtGreen);
+	SetBackColor(0xb7dc00);
 	struct SPA_HEADER header;
     
     currentColor = cLtBlue;
+    if (header.sceneNodesCount > 0) {
+	    struct
+	    {
+            local int i;
+            local int64 currentOffset = startof(parentof(this));
+            PushFP();
+	        { 
+                FSeek(currentOffset + header.sceneNodesOffset);
+                for(i = 0; i < header.sceneNodesCount; i++) {
+                    AlternateColors(0x00d8ff, 0x009dfa);
+                    struct SCNE_ENTRY child(currentOffset) <optimize = false>;
+                }
+            }
+            PopFP();
+	    } sceneNodesEntries;
+    }
+    
 	struct
 	{
         local int i;
@@ -162,4 +217,6 @@ struct SPA_FILE
 	} boneEntries;
 };
 
+#ifndef NESTED_INCLUSION
 struct SPA_FILE fileInfo;
+#endif
