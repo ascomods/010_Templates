@@ -35,25 +35,6 @@ void AlternateColors(int colorA, int colorB) {
 
 struct SPA_FILE;
 
-struct SPA_HEADER
-{
-    // 0x00
-	uint32 unknown0x00;
-	ptrString name(startof(this))  <read = ptrString_read>;
-	uint32 unknown0x08;
-	float frameCount;
-    // 0x10
-    uint32 boneCount;
-    uint32 maybeStartOffset      <format = hex>;
-    uint32 sceneNodesCount;
-    uint32 sceneNodesOffset      <format = hex>;
-    // 0x20
-    uint32 unknown0x20;
-    uint32 boneDataStartOffset   <format = hex>;
-    uint32 unknown0x28;
-    uint32 unknown0x2C;
-};
-
 typedef union {
     int64 rot;
 	local double x, y, z;
@@ -150,29 +131,33 @@ string readBone(const BONE_ENTRY &b){
 	return s;
 }
 
-typedef struct(int64 baseOffset)
+typedef struct(int64 baseOffset, int useFloatData)
 {
 	// 0x00
     ptrString name(baseOffset)    <read = ptrString_read>;
     uint32 frameCount;
     uint32 frameOffset            <format = hex>;
-    uint32 unknownOffset          <format = hex>;
+    uint32 floatOffset          <format = hex>;
 
     if (frameCount > 0) {
 	    PushFP();
 	    {
             FSeek(baseOffset + frameOffset);
 
-			SetBackColor(cPurple);
+			SetBackColor(0x00b7ff);
             float frameData[frameCount] <format = hex>;
 	    }
 	    PopFP();
     }
 	PushFP();
 	{
-        FSeek(baseOffset + unknownOffset);
-        SetBackColor(0x0000ff);
-        float unknownData;
+        FSeek(baseOffset + floatOffset);
+        SetBackColor(0x3643f4);
+        if (useFloatData != 0) {
+            float floatData[frameCount];
+        } else {
+            float unknownData;
+        }
 	}
 	PopFP();
 } SCNE_ENTRY <read = readSceneNode>;
@@ -182,6 +167,25 @@ string readSceneNode(const SCNE_ENTRY &sc){
 	SPrintf(s, "%s", ptrString_read(sc.name));
 	return s;
 }
+
+struct SPA_HEADER
+{
+    // 0x00
+	uint32 unknown0x00;
+	ptrString name(startof(this))  <read = ptrString_read>;
+	uint32 unknown0x08;
+	float frameCount;
+    // 0x10
+    uint32 boneCount;
+    uint32 maybeStartOffset      <format = hex>;
+    uint32 sceneNodesCount;
+    uint32 sceneNodesOffset      <format = hex>;
+    // 0x20
+    uint32 cameraCount;
+    uint32 cameraOffset   <format = hex>;
+    uint32 unknown0x28;
+    uint32 unknown0x2C;
+};
 
 // SPA File Structure
 struct SPA_FILE
@@ -200,13 +204,29 @@ struct SPA_FILE
                 FSeek(currentOffset + header.sceneNodesOffset);
                 for(i = 0; i < header.sceneNodesCount; i++) {
                     AlternateColors(0x00d8ff, 0x009dfa);
-                    struct SCNE_ENTRY child(currentOffset) <optimize = false>;
+                    struct SCNE_ENTRY child(currentOffset, 0) <optimize = false>;
                 }
             }
             PopFP();
 	    } sceneNodesEntries;
     }
-    
+    if (header.cameraCount > 0) {
+	    struct
+	    {
+            local int i;
+            local int64 currentOffset = startof(parentof(this));
+            PushFP();
+	        { 
+                FSeek(currentOffset + header.cameraOffset);
+                for(i = 0; i < header.cameraCount; i++) {
+                    AlternateColors(0x00d8ff, 0x009dfa);
+                    struct SCNE_ENTRY child(currentOffset, 1) <optimize = false>;
+                }
+            }
+            PopFP();
+	    } cameraEntries;
+    }
+
 	struct
 	{
         local int i;
