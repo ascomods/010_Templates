@@ -312,10 +312,21 @@ struct VBUF_INFO(int64 stringBase, int64 dataBase)
 };
 #endif
 
-struct SHAP_INFO(int64 stringBase, int64 dataBase, int dataSize)
+struct SHAP_INFO(int64 stringBase, int64 dataBase, int dataSize, string name)
 {
-    if (dataSize/sizeof(float4) > 1) {
-        float4 data[dataSize/sizeof(float4)];
+    if (0 == Strnicmp("DbzShapeInfo", name, 12)) {
+        float data;
+    } else if (dataSize/sizeof(float4) > 1) {
+        if (0 == Strnicmp("DbzEdgeInfo", name, 12)) {
+            local uint size = dataSize/sizeof(float4);
+            size -= 3;
+            float4 data[dataSize/sizeof(float4)];
+            ptrString sourceName(stringBase)    <read = ptrString_read>;
+            ptrString type(stringBase)          <read = ptrString_read>;
+            uint32 unknown0x48;
+        } else {
+            float4 data[dataSize/sizeof(float4)];
+        }
     } else {
         float4 data;
     }
@@ -351,7 +362,7 @@ struct MTRL_PROP(int64 stringBase, int64 dataBase, int dataSize)
         float IluminationShadowOrientation;
         // Only applies when the character has glow
         float IluminationLightOrientationGlow;
-        float2 unk0x04[1];
+        float2 unk0x08[1];
         // Only applies when the character has glow
         float BrightnessPurpleLightGlow;
         //0x10
@@ -424,7 +435,7 @@ void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, i
 			}
 			break;
 		case 0x53484150: // 'SHAP'
-			struct SHAP_INFO dataInfo(stringBase, dataBase, dataSize);
+			struct SHAP_INFO dataInfo(stringBase, dataBase, dataSize, name);
 			break;
 		case 0x56425546: // 'VBUF'
 			struct VBUF_INFO dataInfo(stringBase, dataBase);
