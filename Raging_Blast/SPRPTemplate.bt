@@ -41,6 +41,40 @@ struct SPRP_HEADER
 	// 0x40
 };
 
+struct VSHD_INFO(int64 stringBase, int64 dataBase)
+{
+    // 0x00
+    uint32 unknown0x00[3];
+    uint32 dataSize         <format = hex>;
+    // 0x10
+    uint32 unknown0x10[2];
+
+	PushFP();
+	{
+		FSeek(startof(this) - dataSize);
+        SetBackColor(0xb7dc00);
+        
+        uint32 data[dataSize / sizeof(uint32)];
+	}
+	PopFP();
+};
+
+struct PSHD_INFO(int64 stringBase, int64 dataBase)
+{
+    // 0x00
+    uint32 unknown0x00[3];
+    uint32 dataSize         <format = hex>;
+
+	PushFP();
+	{
+		FSeek(startof(this) - dataSize);
+        SetBackColor(0x92a52d);
+        
+        uint32 data[dataSize / sizeof(uint32)];
+	}
+	PopFP();
+};
+
 struct TXAN_INFO(int64 stringBase, int64 dataBase)
 {
 };
@@ -479,6 +513,12 @@ void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, i
 		case 0x5458414E: // 'TXAN'
 //			struct TXAN_INFO dataInfo(stringBase, dataBase);
 			break;
+		case 0x56534844: // 'VSHD'
+			struct VSHD_INFO dataInfo(stringBase, dataBase);
+			break;
+		case 0x50534844: // 'PSHD'
+			struct PSHD_INFO dataInfo(stringBase, dataBase);
+			break;
 		default:
 			Printf("Unknow data type: 0x%08X\n", dataType);
 			break;
@@ -565,6 +605,8 @@ void DumpDataEntry(uint32 dataType, uint32 dataCount, int64 stringBase, int64 da
 		case 0x424F4E45: // 'BONE'
 		case 0x4452564E: // 'DRVN'
 		case 0x5458414E: // 'TXAN'
+        case 0x56534844: // 'VSHD'
+        case 0x50534844: // 'PSHD'
 			struct SPRP_DATA_ENTRY dataInfo(stringBase, dataBase)[dataCount] <optimize = false, read = DATA_ENTRY_read>;
 			break;
 		default:
