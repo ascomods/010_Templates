@@ -50,6 +50,9 @@ void DumpEntry(char name[], int64 offset)
 	case 0x53505250:
 		SPRP_FILE data;
 		break;
+	case 0x53505233: // "SPR3"
+		SPRP_FILE data;
+		break;
 	default:
         if (Strstr(name, ".spa") != -1) {
             SPA_FILE data;
@@ -95,8 +98,14 @@ struct STPK_FILE
 	SetBackColor(cLtGreen);
 	struct
 	{
-		struct STPK_ENTRY dataEntries(startof(parentof(this)))[header.entryCount] <optimize = false>;
+		struct STPK_ENTRY dataEntries(startof(parentof(this)))[header.entryCount] 
+            <optimize = false, read = STPK_ENTRY_read>;
 	} dataEntries;
 };
+
+string STPK_ENTRY_read (STPK_ENTRY& s)
+{
+	return s.name;
+}
 
 struct STPK_FILE fileInfo;

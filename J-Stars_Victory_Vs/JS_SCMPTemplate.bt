@@ -1,0 +1,83 @@
+/*****************************************************************************
+ * Structure definitions for J-Stars Victory Vs - SCMP file related entities.
+ *
+ *****************************************************************************/
+
+#include "../common-types.bt"
+
+//SetReadOnly(true);
+LittleEndian();
+
+// mark used bytes with a light green background
+SetBackColor(cLtGreen);
+
+struct SCMP_HEADER
+{
+	uint32 fileTag; // "SCMP"
+	uint32 unknown0x04;
+	uint32 unknown0x08;
+	uint32 unknown0x0C;
+};
+
+struct SCMP_INFO
+{
+	uint32 uncompressedSize;
+	uint32 compressedSize;
+    uint32 unknown0x08;
+	uint32 unknown0x0C; // maximum uncompressed block size? - have not seen '0LCS' sections bigger than this size, but not sure if this is related
+};
+
+struct SCH0_HEADER
+{
+	uint32 fileTag;
+	uint32 unknown0x04;
+	uint32 unknown0x08;
+	uint32 unknown0x0C;
+};
+
+struct SCMP_ENTRY
+{
+	SetBackColor(cLtBlue);
+	// 0x00
+	uint32 fileTag;
+	uint32 uncompressedSize;
+	uint32 compressedSize;
+	uint32 unknown0x0C;
+	
+
+    if (fileTag == 0x24434C48)
+    {
+        SetBackColor(cLtGreen);
+        SCH0_HEADER sch0_header;
+        SetBackColor(cLtYellow);
+        uint8  dataBytes[compressedSize - 0x20];
+    }
+    else
+    {
+        SetBackColor(cLtYellow);
+	    uint8  dataBytes[compressedSize - 0x10];
+    }
+};
+
+// SCMP File Structure
+struct SCMP_FILE
+{
+	SetBackColor(cLtBlue);
+	BigEndian();
+	struct SCMP_HEADER scmpHeader;
+	BigEndian();
+	
+	SetBackColor(cLtGreen);
+	struct SCMP_INFO scmpInfo;
+	
+	local uint32 totalSize = sizeof(scmpInfo);
+    struct{
+	    while (totalSize < scmpInfo.compressedSize)
+	    {
+		    struct SCMP_ENTRY scmpEntry;
+		    totalSize += scmpEntry.compressedSize;
+	    }
+    } scmpEntries;
+};
+
+struct SCMP_FILE fileInfo;
