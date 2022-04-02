@@ -123,8 +123,9 @@ struct BONE_DATA(const int64 dataBase)
 	
 	//uint32 unknown0x1C[0x90 >> 2] <format = hex>;
 	// 0xAC
-    uint32   boneIndex;
-    uint32   unknown0x20[3];
+    uint32   groupIndex;
+    uint32   hierarchyBytes  <format = hex>;
+    uint32   unknown0x24[2];
     float4x4 transform1;
     float4x4 transform2;
     
@@ -495,6 +496,9 @@ void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, i
 		case 0x424F4E45: // 'BONE'
 			switch (name)
 			{
+            case "NULL":
+				struct BONE_INFO dataInfo(stringBase, dataBase);
+				break;
 			case "DbzBoneInfo":
                 typedef struct {
                     uint idx;
@@ -502,7 +506,7 @@ void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, i
                 } DbzBoneInfo;
                 DbzBoneInfo d[boneCount];
 				break;
-			case "DbJanembaInfo":
+			default:
                 typedef struct {
                     LittleEndian();
                     uint unknown0x00;
@@ -510,9 +514,6 @@ void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, i
                     float4 unknown0x04;
                 } DbCharBoneInfo;
                 DbCharBoneInfo d[boneCount];
-				break;
-			default:
-				struct BONE_INFO dataInfo(stringBase, dataBase);
 				break;
 			}
 			break;
