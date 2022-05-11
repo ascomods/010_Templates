@@ -1,0 +1,193 @@
+//--------------------------------------
+//--- 010 Editor v6.0.2 Binary Template
+//
+// File:
+// Author:
+// Revision:
+// Purpose:
+//--------------------------------------
+
+BigEndian();
+local uint32 ptrAWGs;
+
+typedef struct entry
+{
+    uint32 NextHeaderPointer <format = hex>;
+    uint32 unk_4;
+    uint32 unk_5;
+    uint32 unk_6;
+};
+
+typedef struct AWOunk_structure(uint32 AWOptr)
+{
+    uint id;
+    uint unk_ptr_13 <format = hex>;
+    uint ptrtoNextBlock <format = hex>;;
+    uint unk_14;
+    uint unk_15;
+    uint unk_16;
+    uint unk_17;
+    uint unk_18;
+};
+
+typedef struct BoneNames
+{
+    char BoneNames[32];
+};
+
+typedef struct Bones(uint32 numBones)
+{
+    BoneNames bn[numBones]  <optimize=false>;
+};
+
+typedef struct UnknownBlock_0
+{
+    char unk_block[80];
+};
+
+typedef struct riggingData
+{
+    float RotationX;
+    float RotationY;
+    float RotationZ;
+    float unk_0;
+    float PositionX;
+    float PositionY;
+    float PositionZ;
+    float unk_1;
+    float ScaleX;
+    float ScaleY;
+    float ScaleZ;
+    float unk_2;
+    uint32 unk_3;
+    uint32 unk_ptr_4;
+    uint32 ptrNextBlock;
+    char unk_block[20];
+};
+typedef struct unk
+{
+    char unk[12];
+};
+
+typedef struct unkBlock
+{
+    char unkBlock[96];
+};
+
+typedef struct unknownBlock(uint32 AWGheader)
+{
+    uint32 id;
+    uint32 unk_ptr_0;
+    uint32 unk_1;
+    uint32 ptrUnknownFloatBlock;
+    uint32 unk_2;
+    
+    if (ptrUnknownFloatBlock != 0)
+    {
+        local long pos = FTell();
+        FSeek(ptrUnknownFloatBlock + AWGheader);
+        char UnknownFloatBlock[64];
+        FSeek(pos);
+    }
+    
+    if (unk_ptr_0 != 0)
+    {
+        FSeek(unk_ptr_0 + AWGheader);
+        
+        local uint32 i = 0;
+        uint32 unkDataCount;
+        
+        for (i = 0; i < unkDataCount; i++)
+        {
+            unk ub0;
+            unkBlock ub1;
+        }
+        
+        FSeek(pos);
+    }
+};
+
+typedef struct UnknownBlock_1(uint32 numberOfBones, uint32 AWGheader)
+{
+    unknownBlock ub(AWGheader)[numberOfBones] <optimize=false>;
+};
+
+struct AMB
+{
+    char AMB[4] <format = hex>;
+    uint32 unk_0;
+    uint32 unk_1;
+    uint32 unk_2;
+    uint32 EntryCount;
+    uint32 EntryStartPointer <format = hex>;
+    uint32 NextHeaderPointer <format = hex>;;
+    uint32 unk_3;
+    entry ec[EntryCount];
+};
+AMB amb;
+
+typedef struct AWGmagic
+{
+    char header[4];
+};
+
+typedef struct unkBlockEnd
+{
+    uint32 unknownStructure;
+};
+
+typedef struct AWG(uint32 ptrAWGOffsets, uint32 AWOheader)
+{
+    FSeek(AWOheader + ptrAWGs);
+    uint32 awgPtr <hidden = true>;
+    FSeek(AWOheader + awgPtr);
+
+    local uint32 AWGheader = FTell();
+    AWGmagic ah;
+    uint32 unk_19;
+    uint32 unk_20;
+    uint32 unk_21;
+    uint32 numberOfBones;
+    uint32 rigging_data_ptr;
+    uint32 unk_23;
+    uint32 ptrBones;
+    uint32 unk_ptr_24;
+    uint32 unk_Count_25;
+    uint32 ptrVertexBlock;
+    uint32 VertexBlockSize;
+    uint32 ptrFaceData;
+    uint32 FaceDataSize;
+    uint32 unk_ptr_28;
+    uint32 sizeOfunk_ptr_28;
+    Bones b(numberOfBones);
+    UnknownBlock_0 ub_0[unk_Count_25];
+    riggingData rd[numberOfBones];
+    UnknownBlock_1 ub1(numberOfBones, AWGheader);
+    FSeek(ptrVertexBlock + AWGheader);
+    char vertexBuffer[VertexBlockSize];
+    char faceData[FaceDataSize];
+    unkBlockEnd ube[sizeOfunk_ptr_28];
+    ptrAWGs = ptrAWGs + 4;
+};
+
+struct AWO
+{   
+    local uint32 AWOheader = FTell();
+    char AWO[4] <format = hex>;
+    uint32 unk_7;
+    uint32 unk_8;
+    uint32 unk_9;
+    uint32 numberOfBones;
+    uint32 ptrtoConnections <format = hex>;
+    uint32 numberOfAWGs;
+    uint32 pointerAWGoffsets <format = hex>;
+    ptrAWGs = pointerAWGoffsets;
+    uint32 unk_10;
+    uint32 ptrBoneNames <format = hex>;
+    uint32 unk_11;
+    uint32 unk_12;
+    AWOunk_structure awo_1(AWOheader)[numberOfBones];
+    uint32 AWGptr[numberOfAWGs] <format = hex>;
+    BoneNames bn[numberOfBones];
+    AWG awg(pointerAWGoffsets, AWOheader) [numberOfAWGs] <optimize=false>;
+};AWO awo;
