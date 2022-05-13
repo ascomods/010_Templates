@@ -79,6 +79,10 @@ struct TXAN_INFO(int64 stringBase, int64 dataBase)
 {
 };
 
+struct ANIM_INFO(int64 stringBase, int64 dataBase)
+{
+};
+
 struct DRVN_ENTRY(int64 dataBase)
 {
 	uint32    unknown0x00;
@@ -529,6 +533,9 @@ void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, i
 		case 0x50534844: // 'PSHD'
 			struct PSHD_INFO dataInfo(stringBase, dataBase);
 			break;
+		case 0x414E494D: // 'ANIM'
+//			struct ANIM_INFO dataInfo(stringBase, dataBase);
+			break;
 		default:
 			Printf("Unknow data type: 0x%08X\n", dataType);
 			break;
@@ -617,6 +624,7 @@ void DumpDataEntry(uint32 dataType, uint32 dataCount, int64 stringBase, int64 da
 		case 0x5458414E: // 'TXAN'
         case 0x56534844: // 'VSHD'
         case 0x50534844: // 'PSHD'
+        case 0x414E494D: // 'ANIM'
 			struct SPRP_DATA_ENTRY dataInfo(stringBase, dataBase)[dataCount] <optimize = false, read = DATA_ENTRY_read>;
 			break;
 		default:
