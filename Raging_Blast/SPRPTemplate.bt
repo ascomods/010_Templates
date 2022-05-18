@@ -484,7 +484,9 @@ void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, i
 			{
 				struct SCNE_MATERIAL dataInfo(stringBase, dataBase) <read = SCNE_MATERIAL_read>;
 			}
-			else if (0 == Strnicmp("|model", name, 6))
+            // We use the SCNE_MODEL struct for all the sections where the data size is 20, 
+            // instead using  0 == Strnicmp("|model", name, 6) when it's only models
+			else if (dataSize == 20)
 			{
 				struct SCNE_MODEL dataInfo(stringBase, dataBase) <read = SCNE_MODEL_read>;
 			}
