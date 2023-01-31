@@ -7,6 +7,7 @@
  *  common-types.bt template made by revel8n
  * 
  * Revision History:
+ *  2023/01/31
  *  2021/12/09
  *  2021/11/10
  *  2021/07/30
@@ -15,6 +16,7 @@
  *  Ascomods (DC)
  *  HiroTex for his explanations
  *  revel8n for his templates
+ *  adsl14
  */
 
 #include "../common-types.bt"
@@ -81,14 +83,15 @@ typedef struct(int64 baseOffset)
     uint32 translationBlockCount;
 	uint32 rotationBlockCount;
     // 0x10
-    uint32 unknown0x10;     // always null
+    uint32 unknownBlockCount;
     uint32 translationFrameOffset    <format = hex>;
     uint32 rotationFrameOffset       <format = hex>;
-    uint32 unknown0x1C               <format = hex>;
+    uint32 unknownFrameOffset        <format = hex>; // Not sure what info is, but is the same format as 'translations'
     // 0x20
     uint32 translationFloatOffset    <format = hex>;
     uint32 rotationFloatOffset       <format = hex>;
-    uint32 unknown0x28[2]            <format = hex>;
+    uint32 unknownFloatOffset        <format = hex>;
+    uint32 unknown0x2C               <format = hex>;
 
 	if (translationBlockCount > 0)
 	{   
@@ -123,6 +126,24 @@ typedef struct(int64 baseOffset)
 	    }
 	    PopFP();
     }
+
+	if (unknownBlockCount > 0)
+	{   
+	    PushFP();
+	    {
+            FSeek(baseOffset + unknownFrameOffset);
+
+			SetBackColor(0x5aafff);
+            float unknownFrameData[unknownBlockCount] <format = hex>;
+
+            FSeek(baseOffset + unknownFloatOffset);
+
+			SetBackColor(0x0c8efc);
+            float4 unknownFloatData[unknownBlockCount] <read=float4SciRead>;
+	    }
+	    PopFP();
+    }
+
 } BONE_ENTRY <read = readBone>;
 
 string readBone(const BONE_ENTRY &b){
