@@ -54,7 +54,7 @@ string rotationRead( const rotation &r )
 }
 
 int64 getRotation(const double &v) {
-    return (int64)(((v + 90) * 0x7ffff) / 90);
+    return (int64)(((v + 90) / 90) * 0x7ffff);
 }
 
 void rotationWrite( rotation &r, string s )
@@ -64,7 +64,7 @@ void rotationWrite( rotation &r, string s )
     local int64 rotY = getRotation(r.y) << 20;
     local int64 rotZ = getRotation(r.z);
 
-    r.rot = 0x3000000000000000 | (rotX | rotY | rotZ);
+    r.rot = 0x3000000000000000 | rotX | rotY | rotZ;
 }
 
 // float4 parsing functions
