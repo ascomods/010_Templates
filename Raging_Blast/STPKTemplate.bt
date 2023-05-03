@@ -54,7 +54,7 @@ void DumpEntry(char name[], int64 offset)
 		SPRP_FILE data;
 		break;
 	default:
-        if (Strstr(name, ".spa") != -1) {
+        if ((Strstr(name, ".spa") != -1) && (Strstr(name, ".spae") == -1)){
             SPA_FILE data;
         }
         else

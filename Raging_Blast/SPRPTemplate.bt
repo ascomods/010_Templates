@@ -54,6 +54,10 @@ struct VSHD_INFO(int64 stringBase, int64 dataBase)
 		FSeek(startof(this) - dataSize);
         SetBackColor(0xb7dc00);
         
+        /*local uint i;
+        for(i = 0; i < (dataSize / sizeof(uint32)); i++){
+            ptrString unknown0x04(dataBase) <read = ptrString_read>;
+        }*/
         uint32 data[dataSize / sizeof(uint32)];
 	}
 	PopFP();
@@ -258,20 +262,24 @@ struct SCNE_INFO(int64 stringBase, int64 dataBase)
 enum <uint16> VertexUsage
 {
 	VTXUSAGE_POSITION = 0,
-	VTXUSAGE_NORMAL   = 2,
-    VTXUSAGE_BINORMAL = 3,
+	VTXUSAGE_COLOR = 1,
+	VTXUSAGE_NORMAL = 2,
+	VTXUSAGE_BINORMAL = 3,
+	VTXUSAGE_TANGENT = 4,
 	VTXUSAGE_TEXCOORD = 5,
 	VTXUSAGE_BONE_WEIGHTS  = 6,
-	VTXUSAGE_BONE_INDICES  = 7,
+	VTXUSAGE_BONE_INDICES  = 7
 };
 
 enum <uint16> VertexFormat
 {
-	VTXFMT_ULONG1 =  2,
-	VTXFMT_FLOAT1 =  8,
+	VTXFMT_UINT1 =  2,
+	VTXFMT_FLOAT1_1 = 7,
+	VTXFMT_FLOAT1_2 = 8,
 	VTXFMT_FLOAT2 =  9,
 	VTXFMT_FLOAT3 = 10,
 	VTXFMT_FLOAT4 = 11,
+	VTXFMT_FLOAT1_3 = 14
 };
 
 struct VERTEX_DECL(int64 stringBase, int64 dataBase)
@@ -299,8 +307,8 @@ struct VBUF_INFO(int64 stringBase, int64 dataBase)
 	uint32 dataOffset   <format = hex>;
 	uint32 dataSize     <format = hex>;
 	// 0x10
-    uint32 indexCount;
 	uint32 vertexCount;
+    uint32 indexCount;
 	uint16 unknown0x18;
 	uint16 unknown0x1A;
 	uint16 declCount0;
