@@ -1,0 +1,165 @@
+/*****************************************************************************
+ * gsc.bt - Structure definitions for Dragon Ball: Ragin Blast - gsc file related entities.
+ *
+ *****************************************************************************
+ * Revision History:
+ *  2023/08/12 - GWC - Original
+ */
+
+#include "../common-types.bt"
+
+//SetReadOnly(true);
+LittleEndian();
+
+// mark used bytes with a light green background
+SetBackColor(cLtGreen);
+
+struct GSCF_HEADER
+{
+    SetBackColor(cLtGreen);
+	uint32 fileTag; // "GSCF"
+	uint32 unknown0x04;
+	uint32 GSCF_fileSize;
+    uint32 unknown0x0C;
+
+    struct GSHD_HEADER gshdfHeader;
+    struct GSCD_HEADER gscdfHeader;
+    struct GSDT_HEADER gsdtfHeader;
+    struct EOFC_HEADER e0fcHeader;
+};
+
+struct GSHD_HEADER
+{   
+    SetBackColor(cLtGreen);
+	uint32 fileTag; // "GSHD"
+	uint32 unknown0x04;
+	uint32 GSHD_fileSize;
+	uint32 unknown0x0C;
+
+    SetBackColor(cLtRed);
+    uint8  dataBytes[GSHD_fileSize];
+
+    struct EOFC_HEADER e0fcHeader;
+};
+
+struct GSCD_HEADER
+{
+    SetBackColor(cLtGreen);
+	uint32 fileTag; // "GSCD"
+	uint32 unknown0x04;
+	uint32 GSCD_fileSize;
+    uint32 unknown0x0C;
+
+    /*struct GSAC_HEADER gsacfHeader;
+    struct GSAC_HEADER gsacfHeader;
+    struct GSAC_HEADER gsacfHeader;
+    struct GSAC_HEADER gsacfHeader;*/
+    local uint32 totalSizeGSCD = 0;
+    while(totalSizeGSCD < GSCD_fileSize)
+    {
+        struct GSAC_HEADER gsacfHeader;
+
+        totalSizeGSCD += gsacfHeader.GSAC_fileSize + 32;
+    }
+
+    struct EOFC_HEADER e0fcHeader;
+};
+
+struct GSDT_HEADER
+{
+    SetBackColor(cLtGreen);
+	uint32 fileTag; // "GSDT"
+	uint32 unknown0x04;
+	uint32 GSDT_fileSize;
+	uint32 unknown0x0C;
+    SetBackColor(cLtRed);
+    int32 dataBytes[GSDT_fileSize/4];
+
+
+    struct EOFC_HEADER e0fcHeader;
+};
+
+struct GSAC_HEADER
+{
+    SetBackColor(cLtGreen);
+	uint32 fileTag; // "GSAC"
+	uint32 unknown0x04;
+	uint32 GSAC_fileSize;
+    uint32 id;
+
+    struct GSAC_DATA gsacData(GSAC_fileSize);
+
+    struct EOFC_HEADER e0fcHeader;
+};
+
+struct GSAC_DATA(uint32 GSAC_fileSize)
+{
+    local uint32 totalSize = 0;
+
+    while(totalSize < GSAC_fileSize)
+    {
+        struct POINTER_DATA_INFO pointerDataInfo;
+    }
+
+};
+
+struct POINTER_DATA_INFO
+{
+    SetBackColor(cLtYellow);
+    uint8 pointerType;
+    uint8 numberOfPointers;
+    uint8 anotherNumberOfPointers;
+    uint8 unknown0x04;
+    totalSize += 4;
+
+    if(pointerType != 0)
+    {
+        SetBackColor(cLtRed);
+        local uint8 pointersTam = numberOfPointers;
+        if (pointerType == 8)
+        {
+            pointersTam = anotherNumberOfPointers;
+        }
+
+        if(pointersTam > 0)
+        {
+            local uint i;
+            for(i = 0; i < pointersTam; i++)
+            {
+                struct POINTER_DATA pointerData;
+                totalSize += 4;
+            }
+        }
+    }
+};
+
+struct POINTER_DATA
+{
+    uint8 varType_GSDT;
+    uint8 block_id_GSDT;
+    uint16 unknown0x02;
+};
+
+struct GSAC_POINTER_DATA
+{
+    uint8 pointerTag;
+    uint8 id;
+    uint16 unknow0x02;
+};
+
+struct EOFC_HEADER
+{
+    SetBackColor(cLtBlue);
+	uint32 fileTag; // "EOFC"
+	uint32 unknown0x04;
+	uint32 E0FC_fileSize;
+    uint32 unknown0x0C;
+};
+
+// GSCF File structure
+struct GSCF_FILE
+{
+    struct GSCF_HEADER gscfHeader;
+};
+
+struct GSCF_FILE fileInfo;
