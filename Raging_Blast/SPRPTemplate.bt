@@ -87,6 +87,10 @@ struct ANIM_INFO(int64 stringBase, int64 dataBase)
 {
 };
 
+struct BIN_INFO(int64 stringBase, int64 dataBase)
+{
+};
+
 struct DRVN_ENTRY(int64 dataBase)
 {
 	uint32    unknown0x00;
@@ -468,6 +472,9 @@ void DumpData(uint32 dataType, string& name, int64 stringBase, int64 dataBase, i
 	
 		switch (dataType)
 		{
+		case 0x42494E20: // 'BIN'
+//			struct BIN_INFO dataInfo(stringBase, dataBase);
+			break;
 		case 0x54583244: // 'TX2D'
 			struct TX2D_INFO dataInfo(stringBase, dataBase);
 			break;
@@ -624,6 +631,7 @@ void DumpDataEntry(uint32 dataType, uint32 dataCount, int64 stringBase, int64 da
 	{
 		switch (dataType)
 		{
+        case 0x42494E20: // 'BIN'
 		case 0x54583244: // 'TX2D'
 		case 0x4D54524C: // 'MTRL'
 		case 0x53484150: // 'SHAP'
