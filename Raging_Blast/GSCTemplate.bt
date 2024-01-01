@@ -36,10 +36,20 @@ struct GSHD_HEADER
 	uint32 GSHD_fileSize;
 	uint32 unknown0x0C;
 
-    SetBackColor(cLtRed);
-    uint8  dataBytes[GSHD_fileSize];
+    struct GSHD_DATA gshdData(GSHD_fileSize);
 
     struct EOFC_HEADER e0fcHeader;
+};
+
+struct GSHD_DATA(uint32 GSHD_fileSize)
+{
+    local uint32 totalSize = 0;
+
+    while(totalSize < GSHD_fileSize)
+    {
+        struct POINTER_DATA_INFO pointerDataInfo;
+    }
+
 };
 
 struct GSCD_HEADER
@@ -50,10 +60,7 @@ struct GSCD_HEADER
 	uint32 GSCD_fileSize;
     uint32 unknown0x0C;
 
-    /*struct GSAC_HEADER gsacfHeader;
-    struct GSAC_HEADER gsacfHeader;
-    struct GSAC_HEADER gsacfHeader;
-    struct GSAC_HEADER gsacfHeader;*/
+
     local uint32 totalSizeGSCD = 0;
     while(totalSizeGSCD < GSCD_fileSize)
     {
@@ -136,15 +143,15 @@ struct POINTER_DATA_INFO
 struct POINTER_DATA
 {
     uint8 varType_GSDT;
-    uint8 block_id_GSDT;
-    uint16 unknown0x02;
+    uint16 block_id_GSDT;
+    uint8 unknown0x02;
 };
 
 struct GSAC_POINTER_DATA
 {
     uint8 pointerTag;
     uint8 id;
-    uint16 unknow0x02;
+    uint16 unknow0x03;
 };
 
 struct EOFC_HEADER
