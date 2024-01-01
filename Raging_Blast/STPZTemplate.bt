@@ -18,7 +18,7 @@ struct STPZ_HEADER
 {
 	uint32 fileTag; // "STPZ"
 	uint32 unknown0x04;
-	uint32 unknown0x08;
+	uint32 STPK_entryCount;
 	uint32 unknown0x0C;
 };
 
