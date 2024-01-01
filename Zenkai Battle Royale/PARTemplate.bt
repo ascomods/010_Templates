@@ -1,0 +1,96 @@
+//------------------------------------------------
+//--- 010 Editor v11.0.1 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+BigEndian();
+
+
+struct PAR_FILE_HEADER
+{
+    uint32 fileTag; // "PAR"
+    uint32 unk0x04;
+    uint32 numFiles;
+    uint32 unk0x12;
+};
+
+
+struct FILE_ENTRY(int numFiles, int nameFilesOffset, int dataFilesOffset, int countFiles)
+{
+    local uint32 currentPointer = FTell();
+
+    SetBackColor(cLtGreen);
+    uint32 offsetData;
+
+    FSeek(nameFilesOffset + (countFiles * 32));
+    SetBackColor(cLtYellow);
+    char name[32];
+
+    FSeek(dataFilesOffset + (countFiles * 4));
+    SetBackColor(cDkRed);
+    uint32 sizeData;
+
+    FSeek(offsetData);
+    if (sizeData > 0)
+    {
+        SetBackColor(cLtRed);
+        byte spa_file[sizeData];
+    }
+
+    FSeek(currentPointer + 4);
+    
+};
+
+string FILE_ENTRY_read (FILE_ENTRY& f)
+{
+    return f.name;
+};
+
+struct FILES(int numFiles, int nameFilesOffset, int dataFilesOffset)
+{
+    local uint32 countFiles = 0;
+    while(countFiles < numFiles)
+    {
+        struct FILE_ENTRY file(numFiles, nameFilesOffset, dataFilesOffset, countFiles) <read = FILE_ENTRY_read>;
+
+        countFiles += 1;
+    }
+};
+
+struct PAR_FILE
+{
+    SetBackColor(cLtBlue);
+    struct PAR_FILE_HEADER parFileHeader;
+
+    local uint32 currentPointer = FTell();
+
+    // Get nameFilesOffset
+    FSeek((parFileHeader.numFiles * 4) + 16);
+    while(ReadUInt(FTell()) == 0)
+    {
+        FSkip(4);
+    };
+    local uint32 nameFilesOffset = FTell();
+
+    // Get dataFilesOffset
+    FSeek((parFileHeader.numFiles * 32) + nameFilesOffset);
+    while(ReadUInt(FTell()) == 0)
+    {
+        FSkip(4);
+    };
+    local uint32 dataFilesOffset = FTell();
+
+    FSeek(currentPointer);
+
+    struct FILES files(parFileHeader.numFiles, nameFilesOffset, dataFilesOffset);
+};
+
+struct PAR_FILE par_file;
