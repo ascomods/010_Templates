@@ -33,7 +33,7 @@ struct STPK_HEADER
 	uint32 dataTag          <format = hex>; // "STPK"
 	uint32 unknown0x04;
 	uint32 entryCount;
-	uint32 unknown0x0C;
+	uint32 stpk_type;
 };
 
 void DumpEntry(char name[], int64 offset)
